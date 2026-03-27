@@ -49,14 +49,12 @@ class TeamMemberController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $userRole = $request->user()->roleInCurrentTeam();
-        $isOwner = $userRole === 'owner' || ($team && $team->owner_id === $request->user()->id);
-        $isAdmin = $userRole === 'admin';
+        $canSeeAll = $this->isAdminOrOwner($request);
 
         $members = $team->members()
             ->withPivot('role', 'custom_role_id')
-            // Only owners see everyone OR owners see all other owners; admins see everyone too; others see only themselves
-            ->when(!$isOwner && !$isAdmin, fn ($q) => $q->where('users.id', $request->user()->id))
+            // Owners and admins see all members; non-admins see only themselves
+            ->when(!$canSeeAll, fn ($q) => $q->where('users.id', $request->user()->id))
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => [
@@ -74,7 +72,7 @@ class TeamMemberController extends Controller
             ]);
 
         // Ensure the owner is always present even if missing from the pivot table
-        if ($this->isAdminOrOwner($request) && !$members->contains('id', $team->owner_id)) {
+        if ($canSeeAll && !$members->contains('id', $team->owner_id)) {
             $owner = User::find($team->owner_id);
             if ($owner) {
                 // Attach owner to pivot so future queries work correctly
@@ -97,12 +95,13 @@ class TeamMemberController extends Controller
         }
 
         // Ensure current user (if owner/admin) is present with correct role
-        if (($isOwner || $isAdmin) && !$members->contains('id', $request->user()->id)) {
+        if ($canSeeAll && !$members->contains('id', $request->user()->id)) {
             $currentUser = $request->user();
-            $roleToAssign = $isOwner ? 'owner' : 'admin';
+            $userRole = $request->user()->roleInCurrentTeam();
+            $roleToAssign = ($team && $team->owner_id === $currentUser->id) || $userRole === 'owner' ? 'owner' : 'admin';
             
             // Add current user to pivot with correct role
-            $team->members()->syncWithoutDetaching([$request->user()->id => ['role' => $roleToAssign]]);
+            $team->members()->syncWithoutDetaching([$currentUser->id => ['role' => $roleToAssign]]);
             
             $members->push([
                 'id' => $currentUser->id,
