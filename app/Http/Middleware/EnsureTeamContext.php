@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureTeamContext
@@ -20,6 +21,17 @@ class EnsureTeamContext
                     'message' => 'Authentication required.',
                 ],
             ], 401);
+        }
+
+        if (!$user->is_active) {
+            Auth::guard('web')->logout();
+            return response()->json([
+                'error' => [
+                    'status' => 403,
+                    'code' => 'ACCOUNT_DEACTIVATED',
+                    'message' => 'Your account has been deactivated. Contact your administrator.',
+                ],
+            ], 403);
         }
 
         if (!$user->current_team_id) {

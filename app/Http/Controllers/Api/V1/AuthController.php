@@ -61,6 +61,13 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->update(['last_login_at' => now()]);
 
+        if (!$user->is_active) {
+            Auth::guard('web')->logout();
+            throw ValidationException::withMessages([
+                'email' => ['Your account has been deactivated. Please contact your administrator.'],
+            ]);
+        }
+
         return response()->json([
             'data' => new UserResource($user->load('currentTeam')),
         ]);

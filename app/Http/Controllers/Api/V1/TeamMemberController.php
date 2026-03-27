@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Invitation;
 use App\Models\Team;
+use App\Models\TeamRole;
 use App\Models\User;
 use App\Notifications\TeamInvitationNotification;
 use Illuminate\Http\JsonResponse;
@@ -41,7 +42,7 @@ class TeamMemberController extends Controller
         }
 
         $members = $team->members()
-            ->withPivot('role')
+            ->withPivot('role', 'custom_role_id')
             ->when(!$this->isAdminOrOwner($request), fn ($q) => $q->where('users.id', $request->user()->id))
             ->orderBy('name')
             ->get()
@@ -51,7 +52,11 @@ class TeamMemberController extends Controller
                 'email' => $user->email,
                 'avatar_url' => $user->avatar_url,
                 'role' => $user->pivot->role,
+                'custom_role_id' => $user->pivot->custom_role_id,
                 'email_verified_at' => $user->email_verified_at,
+                'is_active' => $user->is_active,
+                'deactivated_at' => $user->deactivated_at,
+                'deactivation_reason' => $user->deactivation_reason,
                 'last_login_at' => $user->last_login_at,
             ]);
 
@@ -135,7 +140,8 @@ class TeamMemberController extends Controller
         }
 
         $validated = $request->validate([
-            'role' => 'required|string|in:admin,member,viewer',
+            'role' => 'required|string|in:admin,member,viewer,custom',
+            'custom_role_id' => 'nullable|uuid|exists:team_roles,id',
         ]);
 
         if (!$team->members()->where('users.id', $user->id)->exists()) {
@@ -147,8 +153,24 @@ class TeamMemberController extends Controller
             return response()->json(['message' => 'Cannot change the team owner\'s role.'], 422);
         }
 
+        // When assigning custom role, validate it belongs to this team
+        $customRoleId = null;
+        if ($validated['role'] === 'custom') {
+            if (empty($validated['custom_role_id'])) {
+                return response()->json(['message' => 'custom_role_id required when role is custom.'], 422);
+            }
+            $customRole = TeamRole::where('id', $validated['custom_role_id'])
+                ->where('team_id', $team->id)
+                ->first();
+            if (!$customRole) {
+                return response()->json(['message' => 'Custom role not found in this team.'], 404);
+            }
+            $customRoleId = $customRole->id;
+        }
+
         $team->members()->updateExistingPivot($user->id, [
             'role' => $validated['role'],
+            'custom_role_id' => $customRoleId,
         ]);
 
         return response()->json(['message' => 'Role updated.']);
@@ -211,6 +233,71 @@ class TeamMemberController extends Controller
                 'id' => $user->id,
                 'email_verified_at' => $user->email_verified_at,
             ],
+        ]);
+    }
+
+    public function deactivate(Request $request, User $user): JsonResponse
+    {
+        $team = $this->currentTeamOrFail($request);
+
+        if (!$this->isAdminOrOwner($request)) {
+            return response()->json(['message' => 'Only owner/admin can deactivate users.'], 403);
+        }
+
+        if (!$team->members()->where('users.id', $user->id)->exists()) {
+            return response()->json(['message' => 'User is not a team member.'], 404);
+        }
+
+        if ($team->owner_id === $user->id) {
+            return response()->json(['message' => 'Cannot deactivate the team owner.'], 422);
+        }
+
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'Cannot deactivate yourself.'], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $user->forceFill([
+            'is_active' => false,
+            'deactivation_reason' => $validated['reason'] ?? null,
+            'deactivated_by' => $request->user()->id,
+            'deactivated_at' => now(),
+        ])->save();
+
+        // Invalidate all sessions for this user
+        \DB::table('sessions')->where('user_id', $user->id)->delete();
+
+        return response()->json([
+            'message' => 'User deactivated.',
+            'data' => ['id' => $user->id, 'is_active' => false],
+        ]);
+    }
+
+    public function activate(Request $request, User $user): JsonResponse
+    {
+        $team = $this->currentTeamOrFail($request);
+
+        if (!$this->isAdminOrOwner($request)) {
+            return response()->json(['message' => 'Only owner/admin can activate users.'], 403);
+        }
+
+        if (!$team->members()->where('users.id', $user->id)->exists()) {
+            return response()->json(['message' => 'User is not a team member.'], 404);
+        }
+
+        $user->forceFill([
+            'is_active' => true,
+            'deactivation_reason' => null,
+            'deactivated_by' => null,
+            'deactivated_at' => null,
+        ])->save();
+
+        return response()->json([
+            'message' => 'User activated.',
+            'data' => ['id' => $user->id, 'is_active' => true],
         ]);
     }
 

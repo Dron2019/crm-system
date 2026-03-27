@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Domain\Shared\Traits\HasUuidPrimaryKey;
+use App\Models\TeamRole;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +13,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -30,6 +31,10 @@ class User extends Authenticatable
         'mfa_enabled',
         'mfa_recovery_codes',
         'mfa_confirmed_at',
+        'is_active',
+        'deactivation_reason',
+        'deactivated_by',
+        'deactivated_at',
     ];
 
     protected $hidden = [
@@ -49,13 +54,15 @@ class User extends Authenticatable
             'mfa_enabled' => 'boolean',
             'mfa_recovery_codes' => 'encrypted:array',
             'mfa_confirmed_at' => 'datetime',
+            'is_active' => 'boolean',
+            'deactivated_at' => 'datetime',
         ];
     }
 
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'team_members')
-            ->withPivot('role')
+            ->withPivot('role', 'custom_role_id')
             ->withTimestamps();
     }
 
@@ -85,6 +92,17 @@ class User extends Authenticatable
             return true;
         }
 
+        // Check custom role permissions first
+        $customRoleId = $teamMember->pivot->custom_role_id ?? null;
+        if ($customRoleId) {
+            $customRole = TeamRole::find($customRoleId);
+            if ($customRole) {
+                $perms = $customRole->permissions ?? [];
+                return in_array($permission, $perms) || in_array('*', $perms);
+            }
+        }
+
+        // Fall back to built-in config role
         $rolePermissions = config("crm.roles.{$role}.permissions", []);
 
         return in_array($permission, $rolePermissions) || in_array('*', $rolePermissions);

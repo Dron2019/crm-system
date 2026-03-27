@@ -18,6 +18,7 @@ import WebhookIcon from '@mui/icons-material/Webhook';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useAuthStore } from '@/stores/authStore';
 
 function isAdminRole(role: string | null | undefined): boolean {
@@ -39,7 +40,10 @@ export default function SettingsLayout() {
     { label: 'Webhooks', icon: <WebhookIcon />, path: '/settings/webhooks' },
     { label: 'Billing', icon: <PaymentIcon />, path: '/settings/billing' },
     ...(isAdminRole(user?.current_team_role)
-      ? [{ label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' }]
+      ? [
+          { label: 'Roles', icon: <AdminPanelSettingsIcon />, path: '/settings/roles' },
+          { label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' },
+        ]
       : []),
   ];
 

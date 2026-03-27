@@ -26,18 +26,24 @@ import {
   Avatar,
   LinearProgress,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   useTeamMembers,
   useTeamInvitations,
+  useTeamRoles,
   useInviteMember,
   useUpdateMemberRole,
   useRemoveMember,
   useCancelInvitation,
   useVerifyMember,
+  useDeactivateMember,
+  useActivateMember,
 } from '@/hooks/useTeamMembers';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
@@ -67,6 +73,10 @@ export default function TeamMembersPage() {
   const removeMember = useRemoveMember();
   const cancelInvitation = useCancelInvitation();
   const verifyMember = useVerifyMember();
+  const deactivateMember = useDeactivateMember();
+  const activateMember = useActivateMember();
+  const { data: rolesData } = useTeamRoles();
+  const customRoles = rolesData?.data ?? [];
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -84,6 +94,8 @@ export default function TeamMembersPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; userId?: string; name?: string }>({
     open: false,
   });
+  const [deactivateDialog, setDeactivateDialog] = useState<{ open: boolean; userId?: string; name?: string }>({ open: false });
+  const [deactivateReason, setDeactivateReason] = useState('');
 
   const visibleMembers = useMemo(() => {
     const filtered = (members ?? []).filter((member) => {
@@ -151,8 +163,9 @@ export default function TeamMembersPage() {
   };
 
   const handleRoleChange = (userId: string, role: string) => {
+    const isCustom = customRoles.some((r) => r.id === role);
     updateRole.mutate(
-      { userId, role },
+      isCustom ? { userId, role: 'custom', customRoleId: role } : { userId, role },
       {
         onSuccess: () => addToast('Role updated', 'success'),
         onError: () => addToast('Failed to update role', 'error'),
@@ -269,13 +282,26 @@ export default function TeamMembersPage() {
               </TableHead>
               <TableBody>
                 {visibleMembers.map((member) => (
-                  <TableRow key={member.id}>
+                  <TableRow
+                    key={member.id}
+                    sx={{
+                      opacity: member.is_active ? 1 : 0.55,
+                      bgcolor: member.is_active ? undefined : (theme) => alpha(theme.palette.error.light, 0.06),
+                    }}
+                  >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Avatar sx={{ width: 32, height: 32 }}>
                           {member.name.charAt(0)}
                         </Avatar>
-                        <Typography variant="body2">{member.name}</Typography>
+                        <Box>
+                          <Typography variant="body2">{member.name}</Typography>
+                          {!member.is_active && (
+                            <Typography variant="caption" color="error.main">
+                              Inactive{member.deactivated_at ? ` · ${new Date(member.deactivated_at).toLocaleDateString()}` : ''}
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
@@ -291,20 +317,31 @@ export default function TeamMembersPage() {
                         <Chip label="Owner" color="error" size="small" />
                       ) : !canManageMembers ? (
                         <Chip
-                          label={member.role}
+                          label={member.role === 'custom' && member.custom_role_id
+                            ? (customRoles.find((r) => r.id === member.custom_role_id)?.name ?? 'Custom')
+                            : member.role}
                           size="small"
                           color={roleColors[member.role] ?? 'default'}
                         />
                       ) : (
-                        <FormControl size="small" sx={{ minWidth: 100 }}>
+                        <FormControl size="small" sx={{ minWidth: 130 }}>
                           <Select
-                            value={member.role}
+                            value={member.role === 'custom' && member.custom_role_id ? member.custom_role_id : member.role}
                             onChange={(e) => handleRoleChange(member.id, e.target.value)}
                             size="small"
                           >
                             <MenuItem value="admin">Admin</MenuItem>
                             <MenuItem value="member">Member</MenuItem>
                             <MenuItem value="viewer">Viewer</MenuItem>
+                            {customRoles.length > 0 && <MenuItem disabled sx={{ fontSize: 11, opacity: 0.6 }}>── Custom roles ──</MenuItem>}
+                            {customRoles.map((r) => (
+                              <MenuItem key={r.id} value={r.id}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: r.color }} />
+                                  {r.name}
+                                </Box>
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
                       )}
@@ -316,7 +353,7 @@ export default function TeamMembersPage() {
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                        {canManageMembers && !member.email_verified_at && (
+                        {canManageMembers && !member.email_verified_at && member.is_active && (
                           <Tooltip title="Verify user">
                             <IconButton
                               size="small"
@@ -331,6 +368,37 @@ export default function TeamMembersPage() {
                               <CheckCircleOutlineIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                        )}
+                        {canManageMembers && member.role !== 'owner' && member.id !== user?.id && (
+                          member.is_active ? (
+                            <Tooltip title="Deactivate user">
+                              <IconButton
+                                size="small"
+                                color="warning"
+                                onClick={() => {
+                                  setDeactivateReason('');
+                                  setDeactivateDialog({ open: true, userId: member.id, name: member.name });
+                                }}
+                              >
+                                <BlockIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title="Reactivate user">
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() =>
+                                  activateMember.mutate(member.id, {
+                                    onSuccess: () => addToast('User reactivated', 'success'),
+                                    onError: () => addToast('Failed to reactivate user', 'error'),
+                                  })
+                                }
+                              >
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )
                         )}
                         {canManageMembers && member.role !== 'owner' && member.id !== user?.id && (
                           <Tooltip title="Remove member">
@@ -460,6 +528,47 @@ export default function TeamMembersPage() {
         onConfirm={handleRemove}
         onCancel={() => setConfirmDelete({ open: false })}
       />
+
+      {/* Deactivate Dialog */}
+      <Dialog open={deactivateDialog.open} onClose={() => setDeactivateDialog({ open: false })} maxWidth="sm" fullWidth>
+        <DialogTitle>Deactivate {deactivateDialog.name}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            The user will be blocked from logging in immediately. You can reactivate them at any time.
+          </Typography>
+          <TextField
+            label="Reason (optional)"
+            multiline
+            rows={2}
+            fullWidth
+            value={deactivateReason}
+            onChange={(e) => setDeactivateReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeactivateDialog({ open: false })}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={deactivateMember.isPending}
+            onClick={() => {
+              if (!deactivateDialog.userId) return;
+              deactivateMember.mutate(
+                { userId: deactivateDialog.userId, reason: deactivateReason || undefined },
+                {
+                  onSuccess: () => {
+                    addToast('User deactivated', 'success');
+                    setDeactivateDialog({ open: false });
+                  },
+                  onError: () => addToast('Failed to deactivate user', 'error'),
+                },
+              );
+            }}
+          >
+            Deactivate
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

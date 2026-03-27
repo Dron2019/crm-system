@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
+use App\Http\Controllers\Api\V1\TeamRoleController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\MfaController;
 use App\Http\Controllers\Api\V1\EmailController;
@@ -121,10 +122,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('members', [TeamMemberController::class, 'index']);
             Route::put('members/{user}/role', [TeamMemberController::class, 'updateRole']);
             Route::post('members/{user}/verify', [TeamMemberController::class, 'verify']);
+            Route::post('members/{user}/deactivate', [TeamMemberController::class, 'deactivate']);
+            Route::post('members/{user}/activate', [TeamMemberController::class, 'activate']);
             Route::delete('members/{user}', [TeamMemberController::class, 'remove']);
             Route::get('invitations', [TeamMemberController::class, 'pendingInvitations']);
             Route::post('invitations', [TeamMemberController::class, 'invite']);
             Route::delete('invitations/{invitation}', [TeamMemberController::class, 'cancelInvitation']);
+            Route::get('roles', [TeamRoleController::class, 'index']);
+            Route::post('roles', [TeamRoleController::class, 'store']);
+            Route::put('roles/{teamRole}', [TeamRoleController::class, 'update']);
+            Route::delete('roles/{teamRole}', [TeamRoleController::class, 'destroy']);
         });
 
         // Attachments
