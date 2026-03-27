@@ -28,7 +28,21 @@ interface Member {
   role: string;
 }
 
+interface MembersResponse {
+  data: Member[];
+  meta?: {
+    can_manage_members?: boolean;
+    current_user_role?: string;
+  };
+}
+
 const roles = ['admin', 'member', 'viewer'];
+const roleHelp: Record<string, string> = {
+  owner: 'Full access, billing owner, cannot be changed.',
+  admin: 'Can manage members, settings, imports, and all CRM records.',
+  member: 'Can work with CRM records but cannot manage members/import settings.',
+  viewer: 'Read-only access for CRM records.',
+};
 
 export default function MembersSettingsPage() {
   const queryClient = useQueryClient();
@@ -36,13 +50,17 @@ export default function MembersSettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('member');
 
-  const { data: members, isLoading } = useQuery<Member[]>({
+  const { data: membersResponse, isLoading } = useQuery<MembersResponse>({
     queryKey: ['team-members'],
     queryFn: async () => {
       const { data } = await api.get('/team/members');
-      return data.data;
+      return data;
     },
   });
+
+  const members = membersResponse?.data ?? [];
+  const canManageMembers = !!membersResponse?.meta?.can_manage_members;
+  const currentUserRole = membersResponse?.meta?.current_user_role;
 
   const inviteMutation = useMutation({
     mutationFn: () => api.post('/team/invitations', { email: inviteEmail, role: inviteRole }),
@@ -71,14 +89,25 @@ export default function MembersSettingsPage() {
 
   return (
     <Box>
+      {!canManageMembers && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You are signed in as {currentUserRole ?? 'member'}. Only owner/admin can invite users or change roles.
+        </Alert>
+      )}
+
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h6" fontWeight={600}>Team Members</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setInviteOpen(true)}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setInviteOpen(true)}
+          disabled={!canManageMembers}
+        >
           Invite
         </Button>
       </Box>
 
-      {members?.map((member) => (
+      {members.map((member) => (
         <Card key={member.id} sx={{ mb: 1 }}>
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
             <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14 }}>
@@ -94,14 +123,15 @@ export default function MembersSettingsPage() {
               value={member.role}
               onChange={(e) => updateRoleMutation.mutate({ userId: member.id, role: e.target.value })}
               sx={{ minWidth: 120 }}
-              disabled={member.role === 'owner'}
+              disabled={member.role === 'owner' || !canManageMembers}
+              helperText={roleHelp[member.role] ?? ''}
             >
               <MenuItem value="owner" disabled>Owner</MenuItem>
               {roles.map((r) => (
                 <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>
               ))}
             </TextField>
-            {member.role !== 'owner' && (
+            {member.role !== 'owner' && canManageMembers && (
               <IconButton size="small" color="error" onClick={() => removeMutation.mutate(member.id)}>
                 <DeleteIcon fontSize="small" />
               </IconButton>

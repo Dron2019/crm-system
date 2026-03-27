@@ -10,8 +10,10 @@ return [
             'label' => 'Admin',
             'permissions' => [
                 'contacts.view', 'contacts.create', 'contacts.update', 'contacts.delete', 'contacts.export',
+                'contacts.import',
                 'companies.view', 'companies.create', 'companies.update', 'companies.delete', 'companies.export',
                 'deals.view', 'deals.create', 'deals.update', 'deals.delete', 'deals.export',
+                'deals.import',
                 'pipelines.view', 'pipelines.create', 'pipelines.update', 'pipelines.delete',
                 'activities.view', 'activities.create', 'activities.update', 'activities.delete',
                 'notes.view', 'notes.create', 'notes.update', 'notes.delete',

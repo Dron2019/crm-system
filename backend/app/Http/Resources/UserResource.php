@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'timezone' => $this->timezone,
             'locale' => $this->locale,
             'current_team_id' => $this->current_team_id,
+            'current_team_role' => $this->roleInCurrentTeam(),
             'current_team' => new TeamResource($this->whenLoaded('currentTeam')),
             'teams' => TeamResource::collection($this->whenLoaded('teams')),
             'email_verified_at' => $this->email_verified_at,

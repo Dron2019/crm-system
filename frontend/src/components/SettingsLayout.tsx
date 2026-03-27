@@ -17,21 +17,31 @@ import TuneIcon from '@mui/icons-material/Tune';
 import WebhookIcon from '@mui/icons-material/Webhook';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 import PaymentIcon from '@mui/icons-material/Payment';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useAuthStore } from '@/stores/authStore';
 
-const settingsNav = [
-  { label: 'General', icon: <PersonIcon />, path: '/settings' },
-  { label: 'Members', icon: <GroupIcon />, path: '/settings/members' },
-  { label: 'Security', icon: <SecurityIcon />, path: '/settings/security' },
-  { label: 'Pipelines', icon: <ViewKanbanIcon />, path: '/settings/pipelines' },
-  { label: 'Custom Fields', icon: <TuneIcon />, path: '/settings/custom-fields' },
-  { label: 'Integrations', icon: <IntegrationInstructionsIcon />, path: '/settings/integrations' },
-  { label: 'Webhooks', icon: <WebhookIcon />, path: '/settings/webhooks' },
-  { label: 'Billing', icon: <PaymentIcon />, path: '/settings/billing' },
-];
+function isAdminRole(role: string | null | undefined): boolean {
+  return role === 'owner' || role === 'admin';
+}
 
 export default function SettingsLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = useAuthStore((s) => s.user);
+
+  const settingsNav = [
+    { label: 'General', icon: <PersonIcon />, path: '/settings' },
+    { label: 'Members', icon: <GroupIcon />, path: '/settings/members' },
+    { label: 'Security', icon: <SecurityIcon />, path: '/settings/security' },
+    { label: 'Pipelines', icon: <ViewKanbanIcon />, path: '/settings/pipelines' },
+    { label: 'Custom Fields', icon: <TuneIcon />, path: '/settings/custom-fields' },
+    { label: 'Integrations', icon: <IntegrationInstructionsIcon />, path: '/settings/integrations' },
+    { label: 'Webhooks', icon: <WebhookIcon />, path: '/settings/webhooks' },
+    { label: 'Billing', icon: <PaymentIcon />, path: '/settings/billing' },
+    ...(isAdminRole(user?.current_team_role)
+      ? [{ label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' }]
+      : []),
+  ];
 
   return (
     <Box>

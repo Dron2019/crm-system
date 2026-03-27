@@ -42,6 +42,7 @@ const CustomFieldsSettingsPage = lazy(() => import('@/pages/settings/CustomField
 const IntegrationsSettingsPage = lazy(() => import('@/pages/settings/IntegrationsSettingsPage'));
 const WebhooksSettingsPage = lazy(() => import('@/pages/settings/WebhooksSettingsPage'));
 const BillingSettingsPage = lazy(() => import('@/pages/settings/BillingSettingsPage'));
+const ImportSettingsPage = lazy(() => import('@/pages/settings/ImportSettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function LazyFallback() {
@@ -121,6 +122,7 @@ const router = createBrowserRouter([
               { path: 'integrations', element: <SuspenseWrapper><IntegrationsSettingsPage /></SuspenseWrapper> },
               { path: 'webhooks', element: <SuspenseWrapper><WebhooksSettingsPage /></SuspenseWrapper> },
               { path: 'billing', element: <SuspenseWrapper><BillingSettingsPage /></SuspenseWrapper> },
+              { path: 'imports', element: <SuspenseWrapper><ImportSettingsPage /></SuspenseWrapper> },
             ],
           },
 

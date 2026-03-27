@@ -44,7 +44,9 @@ class RunWorkflowAutomation
         }
 
         if ($event instanceof DealStageChanged) {
-            $context['old_stage_id'] = $event->oldStageId;
+            $context['old_stage_id'] = property_exists($event, 'previousStageId')
+                ? $event->previousStageId
+                : (property_exists($event, 'oldStageId') ? $event->oldStageId : null);
             $context['new_stage_id'] = $event->newStageId;
         }
 

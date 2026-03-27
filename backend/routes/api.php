@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\CompanyNestedController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\ContactImportExportController;
 use App\Http\Controllers\Api\V1\ContactNestedController;
+use App\Http\Controllers\Api\V1\DealImportExportController;
 use App\Http\Controllers\Api\V1\CustomFieldController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DealActionController;
@@ -62,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('contacts/{contact}/timeline', [ContactNestedController::class, 'timeline']);
         Route::post('contacts/{contact}/restore', [ContactNestedController::class, 'restore'])->withTrashed();
         Route::post('contacts/import', [ContactImportExportController::class, 'import']);
+        Route::get('contacts/import-template', [ContactImportExportController::class, 'template']);
         Route::post('contacts/export', [ContactImportExportController::class, 'export']);
 
         // Companies
@@ -73,11 +75,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('companies/{company}/timeline', [CompanyNestedController::class, 'timeline']);
 
         // Deals
+        Route::post('deals/import-preview', [DealImportExportController::class, 'preview'])->name('deals.import.preview');
+        Route::post('deals/import-commit', [DealImportExportController::class, 'commit'])->name('deals.import.commit');
+        Route::post('deals/import', [DealImportExportController::class, 'import']);
+        Route::get('deals/import-template', [DealImportExportController::class, 'template']);
+        Route::post('deals/reorder', [DealActionController::class, 'reorder']);
         Route::apiResource('deals', DealController::class);
         Route::post('deals/{deal}/move', [DealActionController::class, 'move']);
         Route::post('deals/{deal}/won', [DealActionController::class, 'won']);
         Route::post('deals/{deal}/lost', [DealActionController::class, 'lost']);
-        Route::post('deals/reorder', [DealActionController::class, 'reorder']);
         Route::get('deals/{deal}/timeline', [DealActionController::class, 'timeline']);
         Route::get('deals/{deal}/activities', [DealActionController::class, 'activities']);
         Route::get('deals/{deal}/notes', [DealActionController::class, 'notes']);

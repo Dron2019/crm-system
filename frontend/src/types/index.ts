@@ -6,6 +6,7 @@ export interface User {
   timezone: string;
   locale: string;
   current_team_id: string;
+  current_team_role?: string | null;
   current_team?: Team;
   teams?: Team[];
   email_verified_at: string | null;

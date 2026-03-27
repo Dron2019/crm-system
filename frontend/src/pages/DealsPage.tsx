@@ -538,6 +538,7 @@ export default function DealsPage() {
           </Table>
         </TableContainer>
       )}
+
     </Box>
   );
 }
