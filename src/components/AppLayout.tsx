@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -17,6 +17,9 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  FormControl,
+  Select,
+  type SelectChangeEvent,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import PeopleIcon from '@mui/icons-material/People';
@@ -38,9 +41,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationBell from '@/components/NotificationBell';
-import { useEffect } from 'react';
 import { useCurrencies } from '@/hooks/useCurrencies';
 import { useCurrencyStore } from '@/stores/currencyStore';
+import api from '@/lib/api';
 
 const DRAWER_WIDTH = 260;
 
@@ -61,19 +64,51 @@ const navItems = [
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { user, logout } = useAuthStore();
+  const [savingCurrency, setSavingCurrency] = useState(false);
+  const { user, logout, fetchUser } = useAuthStore();
   const { toggleThemeMode, themeMode, setCommandPaletteOpen } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Load currencies and sync user's display currency preference
-  useCurrencies();
+  const { data: currencies = [] } = useCurrencies();
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
   const setDisplayCurrency = useCurrencyStore((s) => s.setDisplayCurrency);
   useEffect(() => {
     if (user?.display_currency) {
       setDisplayCurrency(user.display_currency);
     }
   }, [user?.display_currency, setDisplayCurrency]);
+
+  const handleCurrencyChange = async (event: SelectChangeEvent<string>) => {
+    const nextCurrency = event.target.value;
+    const prevCurrency = displayCurrency;
+
+    setDisplayCurrency(nextCurrency);
+
+    if (!user) return;
+
+    try {
+      setSavingCurrency(true);
+      const formData = new FormData();
+      formData.append('_method', 'PUT');
+      formData.append('name', user.name);
+      formData.append('email', user.email);
+      formData.append('timezone', user.timezone ?? 'UTC');
+      formData.append('display_currency', nextCurrency);
+
+      await api.post('/user/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      await fetchUser();
+    } catch {
+      // Roll back visual state if persistence failed.
+      setDisplayCurrency(prevCurrency);
+    } finally {
+      setSavingCurrency(false);
+    }
+  };
 
   const handleLogout = async () => {
     setAnchorEl(null);
@@ -129,6 +164,27 @@ export default function AppLayout() {
           <IconButton onClick={() => setCommandPaletteOpen(true)} sx={{ mr: 1 }}>
             <SearchIcon />
           </IconButton>
+          <FormControl size="small" sx={{ mr: 1, minWidth: 108 }}>
+            <Select
+              value={displayCurrency || user?.display_currency || 'USD'}
+              onChange={handleCurrencyChange}
+              disabled={savingCurrency || currencies.length === 0}
+              displayEmpty
+              sx={{
+                '& .MuiSelect-select': {
+                  py: 0.75,
+                  fontSize: 13,
+                  fontWeight: 600,
+                },
+              }}
+            >
+              {currencies.map((currency) => (
+                <MenuItem key={currency.code} value={currency.code}>
+                  {currency.code}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <NotificationBell />
           <IconButton onClick={toggleThemeMode} sx={{ mr: 1 }}>
             {themeMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
