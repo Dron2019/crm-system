@@ -19,16 +19,20 @@ import {
   IconButton,
   Tooltip,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useContacts } from '@/hooks/useContacts';
-import type { Contact } from '@/types';
 import type { CustomFieldDefinition } from '@/components/CustomFieldRenderer';
 
 const statusColors: Record<string, 'default' | 'primary' | 'success' | 'warning'> = {
@@ -42,14 +46,25 @@ export default function ContactsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '');
-  const [sourceFilter, setSourceFilter] = useState(searchParams.get('source') ?? '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') ?? 'created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
     (searchParams.get('direction') as 'asc' | 'desc') ?? 'desc',
   );
   const [page, setPage] = useState(Number(searchParams.get('page') ?? 0));
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const [fieldFilters, setFieldFilters] = useState<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      if (key.startsWith('f_')) {
+        next[key] = value;
+      }
+    });
+    return next;
+  });
+
+  const [draftFieldFilters, setDraftFieldFilters] = useState<Record<string, string>>(fieldFilters);
 
   const { data: customFields } = useQuery<CustomFieldDefinition[]>({
     queryKey: ['custom-fields', 'contact'],
@@ -69,62 +84,76 @@ export default function ContactsPage() {
     return next;
   });
 
-  const { data, isLoading } = useContacts({
-    page: page + 1,
-    per_page: rowsPerPage,
-    search: search || undefined,
-    status: statusFilter || undefined,
-    sort: sortBy,
-    direction: sortDirection,
-  });
+  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string>>(customFilters);
+
+  const contactsParams = useMemo(() => {
+    const params: Record<string, string | number | undefined> = {
+      page: page + 1,
+      per_page: rowsPerPage,
+      search: search || undefined,
+      sort: sortBy,
+      direction: sortDirection,
+    };
+
+    Object.entries(fieldFilters).forEach(([key, value]) => {
+      if (value) params[key] = value;
+    });
+
+    Object.entries(customFilters).forEach(([key, value]) => {
+      if (value) params[`cf_${key}`] = value;
+    });
+
+    return params;
+  }, [page, rowsPerPage, search, sortBy, sortDirection, fieldFilters, customFilters]);
+
+  const { data, isLoading } = useContacts(contactsParams);
 
   const contacts = data?.data ?? [];
-  const filteredContacts = useMemo(() => {
-    return contacts.filter((contact: Contact) => {
-      if (sourceFilter && (contact.source ?? '') !== sourceFilter) return false;
-      for (const [field, expected] of Object.entries(customFilters)) {
-        if (!expected) continue;
-        const actual = contact.custom_fields?.[field];
-        if (Array.isArray(actual)) {
-          if (!actual.map(String).some((v) => v.toLowerCase().includes(expected.toLowerCase()))) {
-            return false;
-          }
-        } else if (typeof actual === 'boolean') {
-          const boolText = actual ? 'yes' : 'no';
-          if (!boolText.includes(expected.toLowerCase())) return false;
-        } else if (String(actual ?? '').toLowerCase().includes(expected.toLowerCase()) === false) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [contacts, sourceFilter, customFilters]);
-
-  const total = filteredContacts.length;
+  const total = data?.meta?.total ?? 0;
 
   useEffect(() => {
     const next = new URLSearchParams();
     if (search) next.set('search', search);
-    if (statusFilter) next.set('status', statusFilter);
-    if (sourceFilter) next.set('source', sourceFilter);
     if (sortBy) next.set('sort', sortBy);
     if (sortDirection) next.set('direction', sortDirection);
     if (page) next.set('page', String(page));
+    Object.entries(fieldFilters).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+    });
     Object.entries(customFilters).forEach(([key, value]) => {
       if (value) next.set(`cf_${key}`, value);
     });
     setSearchParams(next, { replace: true });
-  }, [search, statusFilter, sourceFilter, sortBy, sortDirection, page, customFilters, setSearchParams]);
+  }, [search, sortBy, sortDirection, page, fieldFilters, customFilters, setSearchParams]);
 
   const resetFilters = () => {
     setSearch('');
-    setStatusFilter('');
-    setSourceFilter('');
     setSortBy('created_at');
     setSortDirection('desc');
     setPage(0);
+    setFieldFilters({});
     setCustomFilters({});
+    setDraftFieldFilters({});
+    setDraftCustomFilters({});
   };
+
+  const activeFilterCount = Object.values(fieldFilters).filter(Boolean).length
+    + Object.values(customFilters).filter(Boolean).length;
+
+  const filterFieldDefs = [
+    { key: 'f_first_name', label: 'First Name' },
+    { key: 'f_last_name', label: 'Last Name' },
+    { key: 'f_email', label: 'Email' },
+    { key: 'f_phone', label: 'Phone' },
+    { key: 'f_mobile', label: 'Mobile' },
+    { key: 'f_job_title', label: 'Job Title' },
+    { key: 'f_avatar_url', label: 'Avatar URL' },
+    { key: 'f_source', label: 'Source' },
+    { key: 'f_status', label: 'Status' },
+    { key: 'f_assigned_to', label: 'Assigned To User ID' },
+    { key: 'f_last_contacted_at', label: 'Last Contacted At' },
+    { key: 'f_created_at', label: 'Created At' },
+  ];
 
   return (
     <Box>
@@ -160,33 +189,17 @@ export default function ContactsPage() {
             }}
             sx={{ minWidth: 240 }}
           />
-          <TextField
-            size="small"
-            label="Source"
-            value={sourceFilter}
-            onChange={(e) => {
-              setSourceFilter(e.target.value);
-              setPage(0);
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={() => {
+              setDraftFieldFilters(fieldFilters);
+              setDraftCustomFilters(customFilters);
+              setFilterOpen(true);
             }}
-            sx={{ minWidth: 140 }}
-          />
-          <TextField
-            select
-            size="small"
-            label="Status"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(0);
-            }}
-            sx={{ minWidth: 140 }}
           >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="lead">Lead</MenuItem>
-            <MenuItem value="customer">Customer</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </TextField>
+            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+          </Button>
           <TextField
             select
             size="small"
@@ -222,24 +235,6 @@ export default function ContactsPage() {
             Reset
           </Button>
         </Box>
-
-        {customFields && customFields.length > 0 && (
-          <Box display="flex" gap={1} mt={1} flexWrap="wrap">
-            {customFields.map((field) => (
-              <TextField
-                key={field.id}
-                size="small"
-                label={field.label}
-                value={customFilters[field.name] ?? ''}
-                onChange={(e) => {
-                  setCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
-                  setPage(0);
-                }}
-                sx={{ minWidth: 180 }}
-              />
-            ))}
-          </Box>
-        )}
       </Paper>
 
       <TableContainer component={Paper}>
@@ -262,14 +257,14 @@ export default function ContactsPage() {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : filteredContacts.length === 0 ? (
+            ) : contacts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   No contacts found.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredContacts.map((contact) => (
+              contacts.map((contact) => (
                 <TableRow key={contact.id} hover sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1.5}>
@@ -343,6 +338,58 @@ export default function ContactsPage() {
           }}
         />
       </TableContainer>
+
+      <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Filter Contacts</DialogTitle>
+        <DialogContent>
+          <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={1.5} mt={0.5}>
+            {filterFieldDefs.map((field) => (
+              <TextField
+                key={field.key}
+                size="small"
+                label={field.label}
+                value={draftFieldFilters[field.key] ?? ''}
+                onChange={(e) => {
+                  setDraftFieldFilters((prev) => ({ ...prev, [field.key]: e.target.value }));
+                }}
+              />
+            ))}
+            {customFields?.map((field) => (
+              <TextField
+                key={field.id}
+                size="small"
+                label={`${field.label} (Custom)`}
+                value={draftCustomFilters[field.name] ?? ''}
+                onChange={(e) => {
+                  setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+                }}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDraftFieldFilters({});
+              setDraftCustomFilters({});
+            }}
+          >
+            Clear Draft
+          </Button>
+          <Button onClick={() => setFilterOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setFieldFilters(draftFieldFilters);
+              setCustomFilters(draftCustomFilters);
+              setPage(0);
+              setFilterOpen(false);
+            }}
+          >
+            Apply Filters
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

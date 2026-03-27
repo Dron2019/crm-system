@@ -9,6 +9,7 @@ interface ContactsParams {
   status?: string;
   sort?: string;
   direction?: string;
+  [key: string]: string | number | undefined;
 }
 
 export function useContacts(params: ContactsParams = {}) {
