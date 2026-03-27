@@ -15,6 +15,7 @@ class FileUploadService
         'company' => \App\Models\Company::class,
         'deal' => \App\Models\Deal::class,
         'note' => \App\Models\Note::class,
+        'activity' => \App\Models\Activity::class,
     ];
 
     public function upload(

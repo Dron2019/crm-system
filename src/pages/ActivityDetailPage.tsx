@@ -27,6 +27,7 @@ import { useActivity } from '@/hooks/useActivities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
 
 const typeColors: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'error'> = {
@@ -213,6 +214,18 @@ export default function ActivityDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Comments */}
+      <Box mt={3}>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight={700} mb={2}>
+              Comments
+            </Typography>
+            <CommentsSection entityType="activity" entityId={id!} />
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Edit dialog */}
       <Dialog open={editing} onClose={() => setEditing(false)} maxWidth="sm" fullWidth>

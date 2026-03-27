@@ -247,7 +247,12 @@ export default function ContactFormPage() {
                   <Grid container spacing={2}>
                     {customFields.map((field) => (
                         <Grid key={field.id} size={{ xs: 12, sm: 6 }}>
-                          <CustomFieldRenderer field={field} control={control} />
+                          <CustomFieldRenderer
+                            field={field}
+                            control={control}
+                            entityType="contact"
+                            entityId={isEditing ? id : undefined}
+                          />
                         </Grid>
                     ))}
                   </Grid>

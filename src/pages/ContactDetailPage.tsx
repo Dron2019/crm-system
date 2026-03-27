@@ -28,10 +28,11 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useContact } from '@/hooks/useContacts';
-import { useEntityActivities, useEntityDeals, useEntityNotes, useEntityTimeline } from '@/hooks/useEntityActions';
+import { useEntityActivities, useEntityDeals, useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EntityTimeline from '@/components/EntityTimeline';
+import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null | undefined }) {
@@ -66,7 +67,6 @@ export default function ContactDetailPage() {
   const { data: timeline, isLoading: timelineLoading } = useEntityTimeline('contacts', id ?? '');
   const { data: dealsData } = useEntityDeals('contacts', id ?? '');
   const { data: activitiesData } = useEntityActivities('contacts', id ?? '');
-  const { data: notesData } = useEntityNotes('contacts', id ?? '');
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/contacts/${id}`),
@@ -200,7 +200,7 @@ export default function ContactDetailPage() {
               <Tab label="Timeline" />
               <Tab label={`Deals (${dealsData?.data?.length ?? 0})`} />
               <Tab label={`Activities (${activitiesData?.data?.length ?? 0})`} />
-              <Tab label={`Notes (${notesData?.data?.length ?? 0})`} />
+              <Tab label="Comments" />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
@@ -252,23 +252,7 @@ export default function ContactDetailPage() {
                 )
               )}
               {tab === 3 && (
-                notesData?.data && notesData.data.length > 0 ? (
-                  <List disablePadding>
-                    {notesData.data.map((note) => (
-                      <ListItem key={note.id} divider sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <Box display="flex" justifyContent="space-between" width="100%" mb={0.5}>
-                          <Typography variant="caption" color="text.secondary">
-                            {note.user?.name} · {new Date(note.created_at).toLocaleDateString()}
-                          </Typography>
-                          {note.is_pinned && <Chip label="Pinned" size="small" color="warning" />}
-                        </Box>
-                        <Typography variant="body2">{note.body}</Typography>
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" py={2}>No notes yet.</Typography>
-                )
+                <CommentsSection entityType="contact" entityId={id!} />
               )}
             </Box>
           </Paper>

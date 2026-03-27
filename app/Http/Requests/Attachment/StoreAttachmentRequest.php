@@ -15,7 +15,7 @@ class StoreAttachmentRequest extends FormRequest
     {
         return [
             'file' => ['required', 'file', 'max:20480'],
-            'attachable_type' => ['required', 'string', 'in:contact,company,deal,note'],
+            'attachable_type' => ['required', 'string', 'in:contact,company,deal,note,activity'],
             'attachable_id' => ['required', 'uuid'],
         ];
     }

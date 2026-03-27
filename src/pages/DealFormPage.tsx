@@ -277,7 +277,12 @@ export default function DealFormPage() {
                   <Grid container spacing={2}>
                     {customFields.map((field) => (
                       <Grid key={field.id} size={{ xs: 12, sm: 6 }}>
-                        <CustomFieldRenderer<DealFormData> field={field} control={control} />
+                        <CustomFieldRenderer<DealFormData>
+                          field={field}
+                          control={control}
+                          entityType="deal"
+                          entityId={isEdit ? id : undefined}
+                        />
                       </Grid>
                     ))}
                   </Grid>

@@ -25,7 +25,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import PushPinIcon from '@mui/icons-material/PushPin';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDeal } from '@/hooks/useDeals';
@@ -33,8 +32,9 @@ import { useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EntityTimeline from '@/components/EntityTimeline';
+import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
-import type { Activity, Note } from '@/types';
+import type { Activity } from '@/types';
 
 function DetailRow({ label, value, strong = false }: { label: string; value: React.ReactNode; strong?: boolean }) {
   return (
@@ -118,7 +118,6 @@ export default function DealDetailPage() {
   const [tab, setTab] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'task', title: '', description: '', scheduled_at: '' });
-  const [noteBody, setNoteBody] = useState('');
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
 
@@ -129,16 +128,6 @@ export default function DealDetailPage() {
     queryKey: ['deal-activities', id],
     queryFn: async () => {
       const { data } = await api.get(`/deals/${id}/activities`);
-      return data;
-    },
-    enabled: !!id,
-  });
-
-  // Fetch notes for this deal
-  const { data: notesData } = useQuery<{ data: Note[] }>({
-    queryKey: ['deal-notes', id],
-    queryFn: async () => {
-      const { data } = await api.get(`/deals/${id}/notes`);
       return data;
     },
     enabled: !!id,
@@ -160,22 +149,6 @@ export default function DealDetailPage() {
     onError: () => addToast('Failed to add activity', 'error'),
   });
 
-  // Create note for this deal
-  const createNoteMutation = useMutation({
-    mutationFn: (body: string) =>
-      api.post('/notes', {
-        notable_type: 'deal',
-        notable_id: id,
-        body,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deal-notes', id] });
-      setNoteBody('');
-      addToast('Note added');
-    },
-    onError: () => addToast('Failed to add note', 'error'),
-  });
-
   // Toggle activity completion
   const toggleActivityMutation = useMutation({
     mutationFn: (activity: Activity) =>
@@ -184,14 +157,6 @@ export default function DealDetailPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deal-activities', id] });
-    },
-  });
-
-  // Toggle note pin
-  const togglePinMutation = useMutation({
-    mutationFn: (noteId: string) => api.post(`/notes/${noteId}/pin`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deal-notes', id] });
     },
   });
 
@@ -457,67 +422,7 @@ export default function DealDetailPage() {
               )}
 
               {tab === 2 && (
-                <Box>
-                  <Box display="flex" gap={1} mb={2}>
-                    <TextField
-                      size="small"
-                      value={noteBody}
-                      onChange={(e) => setNoteBody(e.target.value)}
-                      placeholder="Write a note..."
-                      multiline
-                      minRows={2}
-                      sx={{ flex: 1 }}
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      disabled={!noteBody.trim() || createNoteMutation.isPending}
-                      onClick={() => createNoteMutation.mutate(noteBody)}
-                      sx={{ alignSelf: 'flex-start' }}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-
-                  {/* Notes list */}
-                  {notesData?.data && notesData.data.length > 0 ? (
-                    <List dense disablePadding>
-                      {notesData.data.map((note, i) => (
-                        <Box key={note.id}>
-                          {i > 0 && <Divider />}
-                          <ListItem
-                            secondaryAction={
-                              <IconButton size="small" onClick={() => togglePinMutation.mutate(note.id)}>
-                                <PushPinIcon fontSize="small" color={note.is_pinned ? 'primary' : 'action'} />
-                              </IconButton>
-                            }
-                          >
-                            <ListItemText
-                              primary={
-                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                                  {note.body}
-                                </Typography>
-                              }
-                              secondary={
-                                <Box display="flex" gap={1} mt={0.5}>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {note.user?.name ?? 'Unknown'} · {new Date(note.created_at).toLocaleDateString()}
-                                  </Typography>
-                                  {note.is_pinned && (
-                                    <Chip label="Pinned" size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
-                                  )}
-                                </Box>
-                              }
-                            />
-                          </ListItem>
-                        </Box>
-                      ))}
-                    </List>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" py={1}>No notes yet.</Typography>
-                  )}
-                </Box>
+                <CommentsSection entityType="deal" entityId={id!} />
               )}
             </Box>
           </Paper>

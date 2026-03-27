@@ -14,7 +14,7 @@ class StoreNoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'notable_type' => ['required', 'string', 'in:contact,company,deal'],
+            'notable_type' => ['required', 'string', 'in:contact,company,deal,activity'],
             'notable_id' => ['required', 'uuid'],
             'body' => ['required', 'string'],
             'is_pinned' => ['boolean'],

@@ -27,10 +27,11 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompanies';
-import { useEntityDeals, useEntityActivities, useEntityNotes, useEntityTimeline } from '@/hooks/useEntityActions';
+import { useEntityDeals, useEntityActivities, useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EntityTimeline from '@/components/EntityTimeline';
+import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
 import type { Contact } from '@/types';
 
@@ -66,7 +67,6 @@ export default function CompanyDetailPage() {
   const { data: timeline, isLoading: timelineLoading } = useEntityTimeline('companies', id ?? '');
   const { data: dealsData } = useEntityDeals('companies', id ?? '');
   const { data: activitiesData } = useEntityActivities('companies', id ?? '');
-  const { data: notesData } = useEntityNotes('companies', id ?? '');
   const { data: contactsData } = useQuery<{ data: Contact[] }>({
     queryKey: ['entity-contacts', id],
     queryFn: async () => {
@@ -182,7 +182,7 @@ export default function CompanyDetailPage() {
               <Tab label={`Contacts (${contactsData?.data?.length ?? 0})`} />
               <Tab label={`Deals (${dealsData?.data?.length ?? 0})`} />
               <Tab label={`Activities (${activitiesData?.data?.length ?? 0})`} />
-              <Tab label={`Notes (${notesData?.data?.length ?? 0})`} />
+              <Tab label="Comments" />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
@@ -260,23 +260,7 @@ export default function CompanyDetailPage() {
                 )
               )}
               {tab === 4 && (
-                notesData?.data && notesData.data.length > 0 ? (
-                  <List disablePadding>
-                    {notesData.data.map((note) => (
-                      <ListItem key={note.id} divider sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <Box display="flex" justifyContent="space-between" width="100%" mb={0.5}>
-                          <Typography variant="caption" color="text.secondary">
-                            {note.user?.name || 'Unknown'} · {new Date(note.created_at).toLocaleDateString()}
-                          </Typography>
-                          {note.is_pinned && <Chip label="Pinned" size="small" color="warning" />}
-                        </Box>
-                        <Typography variant="body2">{note.body}</Typography>
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" py={2}>No notes yet.</Typography>
-                )
+                <CommentsSection entityType="company" entityId={id!} />
               )}
             </Box>
           </Paper>

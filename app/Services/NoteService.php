@@ -13,6 +13,7 @@ class NoteService
         'contact' => \App\Models\Contact::class,
         'company' => \App\Models\Company::class,
         'deal' => \App\Models\Deal::class,
+        'activity' => \App\Models\Activity::class,
     ];
 
     public function list(Request $request): LengthAwarePaginator

@@ -17,7 +17,7 @@ class StoreCustomFieldRequest extends FormRequest
             'entity_type' => ['required', 'string', 'in:contact,company,deal,team'],
             'name' => ['required', 'string', 'max:255'],
             'label' => ['required', 'string', 'max:255'],
-            'field_type' => ['required', 'string', 'in:text,textarea,number,date,select,multiselect,url,email,phone,boolean,currency'],
+            'field_type' => ['required', 'string', 'in:text,textarea,number,date,select,multiselect,url,email,phone,boolean,currency,file'],
             'options' => ['nullable', 'array'],
             'options.*' => ['string'],
             'required' => ['boolean'],

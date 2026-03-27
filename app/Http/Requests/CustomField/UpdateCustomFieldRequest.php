@@ -16,7 +16,7 @@ class UpdateCustomFieldRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'label' => ['sometimes', 'string', 'max:255'],
-            'field_type' => ['sometimes', 'string', 'in:text,textarea,number,date,select,multiselect,url,email,phone,boolean,currency'],
+            'field_type' => ['sometimes', 'string', 'in:text,textarea,number,date,select,multiselect,url,email,phone,boolean,currency,file'],
             'entity_type' => ['sometimes', 'string', 'in:contact,company,deal,team'],
             'options' => ['nullable', 'array'],
             'options.*' => ['string'],
