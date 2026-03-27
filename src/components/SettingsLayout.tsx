@@ -20,6 +20,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import GroupsIcon from '@mui/icons-material/Groups';
+import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import { useAuthStore } from '@/stores/authStore';
 
 function isAdminRole(user: any): boolean {
@@ -47,6 +48,7 @@ export default function SettingsLayout() {
           { label: 'Roles', icon: <AdminPanelSettingsIcon />, path: '/settings/roles' },
           { label: 'Users', icon: <GroupIcon />, path: '/settings/users' },
           { label: 'Teams', icon: <GroupsIcon />, path: '/settings/teams' },
+          { label: 'Currencies', icon: <CurrencyExchangeIcon />, path: '/settings/currencies' },
           { label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' },
         ]
       : []),

@@ -10,6 +10,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import type { Deal, Stage } from '@/types';
+import { useCurrencyStore } from '@/stores/currencyStore';
+import { convertAmount } from '@/lib/currency';
 
 interface DealCardProps {
   deal: Deal;
@@ -17,6 +19,7 @@ interface DealCardProps {
 }
 
 function DealCard({ deal, onClick }: DealCardProps) {
+  const formatMoney = useCurrencyStore((s) => s.format);
   return (
     <Card
       onClick={onClick}
@@ -32,7 +35,7 @@ function DealCard({ deal, onClick }: DealCardProps) {
           {deal.title}
         </Typography>
         <Typography variant="h6" fontWeight={700} color="primary" mt={0.5}>
-          {deal.currency} {Number(deal.value).toLocaleString()}
+          {formatMoney(Number(deal.value), deal.currency)}
         </Typography>
         {deal.contact && (
           <Box display="flex" alignItems="center" gap={0.5} mt={1}>
@@ -71,7 +74,13 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ stage, deals, onDealClick }: KanbanColumnProps) {
-  const totalValue = deals.reduce((sum, d) => sum + Number(d.value), 0);
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
+  const currencies = useCurrencyStore((s) => s.currencies);
+  const formatMoneyCompact = useCurrencyStore((s) => s.formatCompact);
+  const totalValue = deals.reduce(
+    (sum, d) => sum + convertAmount(Number(d.value), d.currency, displayCurrency, currencies),
+    0,
+  );
 
   return (
     <Box
@@ -100,7 +109,7 @@ function KanbanColumn({ stage, deals, onDealClick }: KanbanColumnProps) {
             <Chip label={deals.length} size="small" variant="outlined" />
           </Box>
           <Typography variant="caption" color="text.secondary" fontWeight={600}>
-            ${totalValue >= 1000 ? `${(totalValue / 1000).toFixed(0)}K` : totalValue}
+            {formatMoneyCompact(totalValue, displayCurrency)}
           </Typography>
         </Box>
       </Paper>

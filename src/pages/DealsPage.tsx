@@ -51,12 +51,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Deal, Stage } from '@/types';
 import type { CustomFieldDefinition } from '@/components/CustomFieldRenderer';
+import { useCurrencyStore } from '@/stores/currencyStore';
+import { convertAmount } from '@/lib/currency';
 
 function DealCard({ deal, onClick, isDragOverlay }: { deal: Deal; onClick: () => void; isDragOverlay?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
     data: { deal },
   });
+  const formatMoney = useCurrencyStore((s) => s.format);
 
   return (
     <Card
@@ -77,7 +80,7 @@ function DealCard({ deal, onClick, isDragOverlay }: { deal: Deal; onClick: () =>
           {deal.title}
         </Typography>
         <Typography variant="h6" fontWeight={500} color="primary" mt={0.5}>
-          {deal.currency} {Number(deal.value).toLocaleString()}
+          {formatMoney(Number(deal.value), deal.currency)}
         </Typography>
         {deal.contact && (
           <Box display="flex" alignItems="center" gap={0.5} mt={1}>
@@ -110,7 +113,13 @@ function DealCard({ deal, onClick, isDragOverlay }: { deal: Deal; onClick: () =>
 }
 
 function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal[]; onDealClick: (id: string) => void }) {
-  const totalValue = deals.reduce((sum, d) => sum + Number(d.value), 0);
+  const formatMoneyCompact = useCurrencyStore((s) => s.formatCompact);
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
+  const currencies = useCurrencyStore((s) => s.currencies);
+  const totalValue = deals.reduce(
+    (sum, d) => sum + convertAmount(Number(d.value), d.currency, displayCurrency, currencies),
+    0,
+  );
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
@@ -142,7 +151,7 @@ function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal
             <Chip label={deals.length} size="small" variant="outlined" />
           </Box>
           <Typography variant="caption" color="text.secondary" fontWeight={600}>
-            ${totalValue >= 1000 ? `${(totalValue / 1000).toFixed(0)}K` : totalValue}
+            {formatMoneyCompact(totalValue, displayCurrency)}
           </Typography>
         </Box>
       </Paper>
@@ -172,6 +181,7 @@ function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal
 
 export default function DealsPage() {
   const navigate = useNavigate();
+  const formatMoney = useCurrencyStore((s) => s.format);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [view, setView] = useState<'kanban' | 'list'>((searchParams.get('view') as 'kanban' | 'list') ?? 'kanban');
@@ -578,7 +588,7 @@ export default function DealsPage() {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={500} color="primary">
-                      {deal.currency} {Number(deal.value).toLocaleString()}
+                      {formatMoney(Number(deal.value), deal.currency)}
                     </Typography>
                   </TableCell>
                   <TableCell>

@@ -103,6 +103,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'timezone' => ['nullable', 'string', 'max:100'],
+            'display_currency' => ['nullable', 'string', 'size:3', Rule::exists('currencies', 'code')],
             'avatar' => ['nullable', 'image', 'max:5120'],
         ]);
 
@@ -119,6 +120,10 @@ class AuthController extends Controller
             $filename = (string) Str::uuid() . '.' . $request->file('avatar')->getClientOriginalExtension();
             $path = $request->file('avatar')->storeAs("avatars/users/{$user->id}", $filename, 'public');
             $validated['avatar_url'] = Storage::disk('public')->url($path);
+        }
+
+        if (isset($validated['display_currency'])) {
+            $validated['display_currency'] = strtoupper((string) $validated['display_currency']);
         }
 
         unset($validated['avatar']);

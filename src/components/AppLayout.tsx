@@ -38,6 +38,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationBell from '@/components/NotificationBell';
+import { useEffect } from 'react';
+import { useCurrencies } from '@/hooks/useCurrencies';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 const DRAWER_WIDTH = 260;
 
@@ -62,6 +65,15 @@ export default function AppLayout() {
   const { toggleThemeMode, themeMode, setCommandPaletteOpen } = useAppStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Load currencies and sync user's display currency preference
+  useCurrencies();
+  const setDisplayCurrency = useCurrencyStore((s) => s.setDisplayCurrency);
+  useEffect(() => {
+    if (user?.display_currency) {
+      setDisplayCurrency(user.display_currency);
+    }
+  }, [user?.display_currency, setDisplayCurrency]);
 
   const handleLogout = async () => {
     setAnchorEl(null);

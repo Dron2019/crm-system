@@ -46,6 +46,7 @@ const ImportSettingsPage = lazy(() => import('@/pages/settings/ImportSettingsPag
 const RolesSettingsPage = lazy(() => import('@/pages/settings/RolesSettingsPage'));
 const UsersSettingsPage = lazy(() => import('@/pages/settings/UsersSettingsPage'));
 const TeamsSettingsPage = lazy(() => import('@/pages/settings/TeamsSettingsPage'));
+const CurrencySettingsPage = lazy(() => import('@/pages/settings/CurrencySettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function LazyFallback() {
@@ -129,6 +130,7 @@ const router = createBrowserRouter([
               { path: 'roles', element: <SuspenseWrapper><RolesSettingsPage /></SuspenseWrapper> },
               { path: 'users', element: <SuspenseWrapper><UsersSettingsPage /></SuspenseWrapper> },
               { path: 'teams', element: <SuspenseWrapper><TeamsSettingsPage /></SuspenseWrapper> },
+              { path: 'currencies', element: <SuspenseWrapper><CurrencySettingsPage /></SuspenseWrapper> },
             ],
           },
 

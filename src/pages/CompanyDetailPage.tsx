@@ -34,6 +34,7 @@ import EntityTimeline from '@/components/EntityTimeline';
 import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
 import type { Contact } from '@/types';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null | undefined }) {
   if (!value) {
@@ -58,6 +59,8 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const formatMoney = useCurrencyStore((s) => s.format);
+  const formatMoneyCompact = useCurrencyStore((s) => s.formatCompact);
   const { data: company, isLoading } = useCompany(id!);
   const [tab, setTab] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -101,10 +104,7 @@ export default function CompanyDetailPage() {
 
   const formatRevenue = (revenue: string | null) => {
     if (!revenue) return null;
-    const num = Number(revenue);
-    if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
-    if (num >= 1_000) return `$${(num / 1_000).toFixed(0)}K`;
-    return `$${num}`;
+    return formatMoneyCompact(Number(revenue), 'USD');
   };
 
   const address = [company.address_line_1, company.address_line_2, company.city, company.state, company.postal_code, company.country]
@@ -225,7 +225,7 @@ export default function CompanyDetailPage() {
                       >
                         <ListItemText
                           primary={deal.title}
-                          secondary={`${deal.currency} ${Number(deal.value).toLocaleString()}`}
+                          secondary={formatMoney(Number(deal.value), deal.currency)}
                           primaryTypographyProps={{ fontWeight: 600 }}
                         />
                         <Chip

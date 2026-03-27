@@ -28,6 +28,7 @@ import {
   useActivityReport,
   useRevenueReport,
 } from '@/hooks/useReports';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 function KpiCard({
   title,
@@ -201,6 +202,7 @@ function RevenueTrend({
 
 function OverviewTab() {
   const { data, isLoading } = useOverviewReport();
+  const formatMoney = useCurrencyStore((s) => s.format);
 
   if (isLoading) return <LinearProgress />;
   if (!data) return null;
@@ -229,7 +231,7 @@ function OverviewTab() {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard
             title="Pipeline Value"
-            value={`$${Number(data.deals.pipeline_value).toLocaleString()}`}
+            value={formatMoney(Number(data.deals.pipeline_value), 'USD')}
             subtitle={`${data.deals.open} open deals`}
             icon={<AttachMoneyIcon />}
             color="#059669"
@@ -299,6 +301,7 @@ function OverviewTab() {
 
 function PipelineTab() {
   const { data, isLoading } = usePipelineReport();
+  const formatMoney = useCurrencyStore((s) => s.format);
 
   if (isLoading) return <LinearProgress />;
   if (!data) return null;
@@ -307,13 +310,13 @@ function PipelineTab() {
     <Box>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Open Deals" value={data.totals.open.count} subtitle={`$${Number(data.totals.open.value).toLocaleString()}`} icon={<TrendingUpIcon />} color="#4f46e5" />
+          <KpiCard title="Open Deals" value={data.totals.open.count} subtitle={formatMoney(Number(data.totals.open.value), 'USD')} icon={<TrendingUpIcon />} color="#4f46e5" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Won Deals" value={data.totals.won.count} subtitle={`$${Number(data.totals.won.value).toLocaleString()}`} icon={<AttachMoneyIcon />} color="#059669" />
+          <KpiCard title="Won Deals" value={data.totals.won.count} subtitle={formatMoney(Number(data.totals.won.value), 'USD')} icon={<AttachMoneyIcon />} color="#059669" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Lost Deals" value={data.totals.lost.count} subtitle={`$${Number(data.totals.lost.value).toLocaleString()}`} icon={<TrendingUpIcon />} color="#dc2626" />
+          <KpiCard title="Lost Deals" value={data.totals.lost.count} subtitle={formatMoney(Number(data.totals.lost.value), 'USD')} icon={<TrendingUpIcon />} color="#dc2626" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <KpiCard title="Win Rate" value={`${data.totals.win_rate}%`} icon={<TrendingUpIcon />} color="#7c3aed" />
@@ -341,8 +344,8 @@ function PipelineTab() {
                   <TableRow key={stage.stage_id}>
                     <TableCell>{stage.stage_name}</TableCell>
                     <TableCell align="right">{stage.deal_count}</TableCell>
-                    <TableCell align="right">${Number(stage.total_value).toLocaleString()}</TableCell>
-                    <TableCell align="right">${Number(stage.avg_value).toLocaleString()}</TableCell>
+                    <TableCell align="right">{formatMoney(Number(stage.total_value), 'USD')}</TableCell>
+                    <TableCell align="right">{formatMoney(Number(stage.avg_value), 'USD')}</TableCell>
                     <TableCell align="right">{Math.round(stage.avg_probability)}%</TableCell>
                   </TableRow>
                 ))}
@@ -359,7 +362,7 @@ function PipelineTab() {
             label: stage.stage_name,
             value: Number(stage.total_value),
           }))}
-          valueFormatter={(n) => `$${Number(n).toLocaleString()}`}
+          valueFormatter={(n) => formatMoney(Number(n), 'USD')}
         />
       </Box>
     </Box>
@@ -466,6 +469,7 @@ function ActivityTab() {
 
 function RevenueTab() {
   const { data, isLoading } = useRevenueReport();
+  const formatMoney = useCurrencyStore((s) => s.format);
 
   if (isLoading) return <LinearProgress />;
   if (!data) return null;
@@ -474,16 +478,16 @@ function RevenueTab() {
     <Box>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Total Revenue" value={`$${Number(data.summary.total_revenue).toLocaleString()}`} subtitle={`${data.summary.deal_count} deals`} icon={<AttachMoneyIcon />} color="#059669" />
+          <KpiCard title="Total Revenue" value={formatMoney(Number(data.summary.total_revenue), 'USD')} subtitle={`${data.summary.deal_count} deals`} icon={<AttachMoneyIcon />} color="#059669" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Avg Deal Size" value={`$${Number(data.summary.avg_deal_size).toLocaleString()}`} icon={<TrendingUpIcon />} color="#4f46e5" />
+          <KpiCard title="Avg Deal Size" value={formatMoney(Number(data.summary.avg_deal_size), 'USD')} icon={<TrendingUpIcon />} color="#4f46e5" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Weighted Forecast" value={`$${Number(data.forecast.weighted_value).toLocaleString()}`} subtitle={`${data.forecast.open_deals} open deals`} icon={<TrendingUpIcon />} color="#7c3aed" />
+          <KpiCard title="Weighted Forecast" value={formatMoney(Number(data.forecast.weighted_value), 'USD')} subtitle={`${data.forecast.open_deals} open deals`} icon={<TrendingUpIcon />} color="#7c3aed" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <KpiCard title="Total Pipeline" value={`$${Number(data.forecast.total_pipeline).toLocaleString()}`} icon={<AttachMoneyIcon />} color="#0891b2" />
+          <KpiCard title="Total Pipeline" value={formatMoney(Number(data.forecast.total_pipeline), 'USD')} icon={<AttachMoneyIcon />} color="#0891b2" />
         </Grid>
       </Grid>
 
@@ -506,7 +510,7 @@ function RevenueTab() {
                   <TableRow key={item.month}>
                     <TableCell>{item.month}</TableCell>
                     <TableCell align="right">{item.deal_count}</TableCell>
-                    <TableCell align="right">${Number(item.revenue).toLocaleString()}</TableCell>
+                    <TableCell align="right">{formatMoney(Number(item.revenue), 'USD')}</TableCell>
                   </TableRow>
                 ))}
                 {data.monthly.length === 0 && (

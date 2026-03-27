@@ -34,6 +34,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EntityTimeline from '@/components/EntityTimeline';
 import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null | undefined }) {
   if (!value) {
@@ -58,6 +59,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const formatMoney = useCurrencyStore((s) => s.format);
   const { data: contact, isLoading } = useContact(id!);
   const [tab, setTab] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -217,7 +219,7 @@ export default function ContactDetailPage() {
                       >
                         <ListItemText
                           primary={deal.title}
-                          secondary={`${deal.currency} ${Number(deal.value).toLocaleString()} · ${deal.stage?.name ?? deal.status}`}
+                          secondary={`${formatMoney(Number(deal.value), deal.currency)} · ${deal.stage?.name ?? deal.status}`}
                           primaryTypographyProps={{ fontWeight: 600 }}
                         />
                         <Chip

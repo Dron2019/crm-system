@@ -5,6 +5,7 @@ export interface User {
   avatar_url: string | null;
   timezone: string;
   locale: string;
+  display_currency: string;
   current_team_id: string;
   current_team_role?: string | null;
   is_system_admin?: boolean;
@@ -47,6 +48,15 @@ export interface Contact {
   last_contacted_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Currency {
+  id: number;
+  code: string;
+  name: string;
+  symbol: string;
+  rate: number; // 1 USD = rate units of this currency
+  is_active: boolean;
 }
 
 export interface Company {

@@ -7,18 +7,29 @@ import { useContacts } from '@/hooks/useContacts';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useDeals } from '@/hooks/useDeals';
 import { useActivities } from '@/hooks/useActivities';
+import { useCurrencyStore } from '@/stores/currencyStore';
+import { convertAmount } from '@/lib/currency';
 
 export default function DashboardPage() {
   const { data: contacts } = useContacts({ per_page: 1 });
   const { data: companies } = useCompanies({ per_page: 1 });
   const { data: deals } = useDeals({ per_page: 200, status: 'open' });
   const { data: recentActivities, isLoading: activitiesLoading } = useActivities({ per_page: 5, sort: 'created_at', direction: 'desc' });
+  const formatMoneyCompact = useCurrencyStore((s) => s.formatCompact);
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
+  const currencies = useCurrencyStore((s) => s.currencies);
 
   const totalContacts = contacts?.meta?.total ?? '—';
   const totalCompanies = companies?.meta?.total ?? '—';
   const openDeals = deals?.meta?.total ?? '—';
   const pipelineValue = deals?.data
-    ? `$${(deals.data.reduce((sum, d) => sum + Number(d.value), 0) / 1000).toFixed(0)}K`
+    ? formatMoneyCompact(
+        deals.data.reduce(
+          (sum, d) => sum + convertAmount(Number(d.value), d.currency, displayCurrency, currencies),
+          0,
+        ),
+        displayCurrency,
+      )
     : '—';
 
   const stats = [

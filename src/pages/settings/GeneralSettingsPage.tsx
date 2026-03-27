@@ -8,18 +8,21 @@ import {
   Button,
   Avatar,
   Alert,
+  MenuItem,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import UploadIcon from '@mui/icons-material/Upload';
 import { useAuthStore } from '@/stores/authStore';
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { useCurrencies } from '@/hooks/useCurrencies';
 
 export default function GeneralSettingsPage() {
   const { user, fetchUser } = useAuthStore();
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [timezone, setTimezone] = useState(user?.timezone ?? '');
+  const [displayCurrency, setDisplayCurrency] = useState(user?.display_currency ?? 'USD');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -27,6 +30,7 @@ export default function GeneralSettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const { data: currencies = [] } = useCurrencies();
 
   const profileMutation = useMutation({
     mutationFn: async () => {
@@ -35,6 +39,7 @@ export default function GeneralSettingsPage() {
       formData.append('name', name);
       formData.append('email', email);
       formData.append('timezone', timezone);
+      formData.append('display_currency', displayCurrency);
       if (avatarFile) {
         formData.append('avatar', avatarFile);
       }
@@ -108,6 +113,18 @@ export default function GeneralSettingsPage() {
             <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
             <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth type="email" />
             <TextField label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} fullWidth placeholder="UTC" />
+            <TextField
+              select
+              label="Display currency"
+              value={displayCurrency}
+              onChange={(e) => setDisplayCurrency(e.target.value)}
+              fullWidth
+              helperText="All money values will be shown in this currency"
+            >
+              {currencies.map((c) => (
+                <MenuItem key={c.code} value={c.code}>{c.code} - {c.name}</MenuItem>
+              ))}
+            </TextField>
           </Box>
           <Button
             variant="contained"

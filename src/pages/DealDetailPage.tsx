@@ -36,6 +36,7 @@ import EntityTimeline from '@/components/EntityTimeline';
 import CommentsSection from '@/components/CommentsSection';
 import api from '@/lib/api';
 import type { Activity } from '@/types';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 function DetailRow({ label, value, strong = false }: { label: string; value: React.ReactNode; strong?: boolean }) {
   return (
@@ -130,6 +131,7 @@ function StageRail({
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const formatMoney = useCurrencyStore((s) => s.format);
   const { data: deal, isLoading } = useDeal(id!);
   const [tab, setTab] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -267,7 +269,7 @@ export default function DealDetailPage() {
           <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight={500} mb={1.5}>Deal Details</Typography>
             <DetailRow label="Deal title" value={deal.title} strong />
-            <DetailRow label="Budget" value={`${deal.currency} ${Number(deal.value).toLocaleString()}`} strong />
+            <DetailRow label="Budget" value={formatMoney(Number(deal.value), deal.currency)} strong />
             <DetailRow label="Probability" value={`${deal.probability}%`} />
             <DetailRow
               label="Created"

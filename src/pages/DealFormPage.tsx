@@ -23,6 +23,8 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useToastStore } from '@/stores/toastStore';
 import CustomFieldRenderer, { type CustomFieldDefinition } from '@/components/CustomFieldRenderer';
+import { useCurrencies } from '@/hooks/useCurrencies';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 const dealSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -44,7 +46,6 @@ const dealSchema = z.object({
 
 type DealFormData = z.infer<typeof dealSchema>;
 
-const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'];
 const statuses = ['open', 'won', 'lost'];
 
 export default function DealFormPage() {
@@ -53,6 +54,7 @@ export default function DealFormPage() {
   const queryClient = useQueryClient();
   const isEdit = Boolean(id);
   const addToast = useToastStore((s) => s.addToast);
+  const displayCurrency = useCurrencyStore((s) => s.displayCurrency);
 
   const { data: deal, isLoading: dealLoading } = useDeal(id ?? '');
   const { data: pipelines } = usePipelines();
@@ -66,6 +68,7 @@ export default function DealFormPage() {
       return data.data;
     },
   });
+  const { data: currencies = [] } = useCurrencies();
 
   const defaultPipelineId = pipelines?.[0]?.id ?? '';
   const defaultStageId = pipelines?.[0]?.stages?.[0]?.id ?? '';
@@ -74,7 +77,7 @@ export default function DealFormPage() {
   const { control, handleSubmit, watch, reset, setValue, formState: { errors, isSubmitting } } = useForm<DealFormData>({
     resolver: zodResolver(dealSchema),
     defaultValues: {
-      title: '', value: 0, currency: 'USD',
+      title: '', value: 0, currency: displayCurrency || 'USD',
       pipeline_id: defaultPipelineId,
       stage_id: defaultStageId,
       contact_id: '', company_id: '',
@@ -90,7 +93,7 @@ export default function DealFormPage() {
     reset({
       title: deal.title ?? '',
       value: Number(deal.value ?? 0),
-      currency: deal.currency ?? 'USD',
+      currency: deal.currency ?? displayCurrency ?? 'USD',
       pipeline_id: deal.pipeline?.id ?? defaultPipelineId,
       stage_id: deal.stage?.id ?? defaultStageId,
       contact_id: deal.contact?.id ?? '',
@@ -180,7 +183,7 @@ export default function DealFormPage() {
               <Grid size={{ xs: 12, sm: 4 }}>
                 <Controller name="currency" control={control} render={({ field }) => (
                   <TextField {...field} label="Currency" fullWidth select>
-                    {currencies.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                    {currencies.map((c) => <MenuItem key={c.code} value={c.code}>{c.code} - {c.name}</MenuItem>)}
                   </TextField>
                 )} />
               </Grid>

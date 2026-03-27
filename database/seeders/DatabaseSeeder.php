@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(CurrencySeeder::class);
+
         // Create demo user
         $user = User::firstOrCreate(
             ['email' => 'demo@crm.test'],

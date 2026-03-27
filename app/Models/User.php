@@ -26,6 +26,7 @@ class User extends Authenticatable
         'timezone',
         'locale',
         'settings',
+        'display_currency',
         'current_team_id',
         'mfa_secret',
         'mfa_enabled',

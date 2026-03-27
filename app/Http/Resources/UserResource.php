@@ -16,6 +16,7 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'timezone' => $this->timezone,
             'locale' => $this->locale,
+            'display_currency' => $this->display_currency ?? 'USD',
             'current_team_id' => $this->current_team_id,
             'current_team_role' => $this->roleInCurrentTeam(),
             'current_team' => new TeamResource($this->whenLoaded('currentTeam')),

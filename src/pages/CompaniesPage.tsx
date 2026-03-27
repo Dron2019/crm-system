@@ -26,9 +26,11 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import BusinessIcon from '@mui/icons-material/Business';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 export default function CompaniesPage() {
   const navigate = useNavigate();
+  const formatMoneyCompact = useCurrencyStore((s) => s.formatCompact);
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
@@ -50,10 +52,7 @@ export default function CompaniesPage() {
 
   const formatRevenue = (revenue: string | null) => {
     if (!revenue) return '—';
-    const num = Number(revenue);
-    if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
-    if (num >= 1_000) return `$${(num / 1_000).toFixed(0)}K`;
-    return `$${num}`;
+    return formatMoneyCompact(Number(revenue), 'USD');
   };
 
   return (

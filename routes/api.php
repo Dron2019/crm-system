@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\EmailController;
 use App\Http\Controllers\Api\V1\WorkflowController;
 use App\Http\Controllers\Api\V1\AiController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\CurrencyController;
 
 // Public auth routes
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -44,6 +45,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/user', [AuthController::class, 'user']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::put('/user/password', [AuthController::class, 'updatePassword']);
+
+    // Currencies
+    Route::get('/currencies', [CurrencyController::class, 'index']);
+    Route::post('/currencies', [CurrencyController::class, 'store']);
+    Route::put('/currencies/{currency}', [CurrencyController::class, 'update']);
+    Route::delete('/currencies/{currency}', [CurrencyController::class, 'destroy']);
+    Route::post('/currencies/refresh-rates', [CurrencyController::class, 'refreshRates']);
 
     // MFA
     Route::prefix('auth/mfa')->group(function () {
