@@ -31,13 +31,14 @@ export default function GeneralSettingsPage() {
   const profileMutation = useMutation({
     mutationFn: async () => {
       const formData = new FormData();
+      formData.append('_method', 'PUT');
       formData.append('name', name);
       formData.append('email', email);
       formData.append('timezone', timezone);
       if (avatarFile) {
         formData.append('avatar', avatarFile);
       }
-      return api.put('/user/profile', formData, {
+      return api.post('/user/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     },

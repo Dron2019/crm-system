@@ -18,6 +18,7 @@ import {
   ListItemIcon,
   Divider,
   Stack,
+  Link,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -56,11 +57,26 @@ function DetailRow({ label, value, strong = false }: { label: string; value: Rea
   );
 }
 
-function formatCustomFieldValue(value: unknown): string {
+function formatCustomFieldValue(value: unknown): React.ReactNode {
   if (value === null || value === undefined || value === '') return '—';
   if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.attachment_id === 'string' && typeof obj.filename === 'string') {
+      return (
+        <Link
+          href={`/api/v1/attachments/${obj.attachment_id}/download`}
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="hover"
+        >
+          {obj.filename}
+        </Link>
+      );
+    }
+    return JSON.stringify(value);
+  }
   return String(value);
 }
 
