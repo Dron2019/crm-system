@@ -138,9 +138,10 @@ function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal
         sx={{
           p: 1.5,
           mb: 1,
-          borderTop: `3px solid ${stage.color || '#6366f1'}`,
-          bgcolor: isOver ? `${stage.color || '#6366f1'}10` : 'background.default',
-          transition: 'background-color 0.2s',
+          bgcolor: stage.color || '#6366f1',
+          color: '#ffffff',
+          boxShadow: isOver ? '0 0 0 3px rgba(255,255,255,0.35) inset' : 'none',
+          transition: 'box-shadow 0.2s',
         }}
       >
         <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -148,9 +149,14 @@ function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal
             <Typography variant="subtitle2" fontWeight={500}>
               {stage.name}
             </Typography>
-            <Chip label={deals.length} size="small" variant="outlined" />
+            <Chip
+              label={deals.length}
+              size="small"
+              variant="outlined"
+              sx={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.7)' }}
+            />
           </Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+          <Typography variant="caption" color="rgba(255,255,255,0.92)" fontWeight={600}>
             {formatMoneyCompact(totalValue, displayCurrency)}
           </Typography>
         </Box>
