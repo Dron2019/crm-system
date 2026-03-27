@@ -258,6 +258,70 @@ Add:
 
 ## 10. Deploy Script
 
+---
+
+## 11. Troubleshooting Blank Main Page
+
+If `https://crm.yourdomain.com` loads a blank page, run these checks in order.
+
+### A. Verify SPA build files exist
+
+```bash
+cd /var/www/crm
+ls -la public/spa
+ls -la public/spa/assets
+```
+
+You must see `public/spa/index.html` and hashed JS/CSS files under `public/spa/assets`.
+
+### B. Verify web root points to Laravel public
+
+Apache/Nginx document root must be:
+
+```text
+/var/www/crm/public
+```
+
+Do not use `/var/www/crm` as document root. The repository root contains source files (including frontend source `index.html`) and will not boot the production app correctly.
+
+### C. Verify asset URLs return 200
+
+Open browser DevTools -> Network and check requests like:
+
+- `/spa/assets/*.js`
+- `/spa/assets/*.css`
+
+If they return `404`, your document root or rewrite setup is incorrect.
+
+### D. Rebuild and recache after deploy
+
+```bash
+cd /var/www/crm
+npm ci
+npm run build
+
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+```
+
+Then reload web server:
+
+```bash
+sudo systemctl reload apache2
+```
+
+### E. Quick server-side verification
+
+```bash
+curl -I https://crm.yourdomain.com/
+curl -I https://crm.yourdomain.com/spa/index.html
+```
+
+Both should return `200` (or `304`).
+
 Create `/var/www/crm/deploy.sh`:
 
 ```bash
