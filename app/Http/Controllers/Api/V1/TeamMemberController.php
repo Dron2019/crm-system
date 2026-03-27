@@ -60,6 +60,29 @@ class TeamMemberController extends Controller
                 'last_login_at' => $user->last_login_at,
             ]);
 
+        // Ensure the owner is always present even if missing from the pivot table
+        if ($this->isAdminOrOwner($request) && !$members->contains('id', $team->owner_id)) {
+            $owner = User::find($team->owner_id);
+            if ($owner) {
+                // Attach owner to pivot so future queries work correctly
+                $team->members()->syncWithoutDetaching([$owner->id => ['role' => 'owner']]);
+
+                $members->prepend([
+                    'id' => $owner->id,
+                    'name' => $owner->name,
+                    'email' => $owner->email,
+                    'avatar_url' => $owner->avatar_url,
+                    'role' => 'owner',
+                    'custom_role_id' => null,
+                    'email_verified_at' => $owner->email_verified_at,
+                    'is_active' => $owner->is_active,
+                    'deactivated_at' => $owner->deactivated_at,
+                    'deactivation_reason' => $owner->deactivation_reason,
+                    'last_login_at' => $owner->last_login_at,
+                ]);
+            }
+        }
+
         return response()->json([
             'data' => $members,
             'meta' => [
