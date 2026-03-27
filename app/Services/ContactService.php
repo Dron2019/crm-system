@@ -70,17 +70,18 @@ class ContactService
                 : [$filterValue];
 
             if (count($options) > 1) {
-                $query->where(function ($sub) use ($jsonPath, $options) {
-                    foreach ($options as $option) {
-                        $sub->orWhereRaw(
+                // AND semantics: all selected options must match.
+                foreach ($options as $option) {
+                    $query->where(function ($sub) use ($jsonPath, $option) {
+                        $sub->whereRaw(
                             'JSON_CONTAINS(JSON_EXTRACT(custom_fields, ?), JSON_QUOTE(?))',
                             [$jsonPath, $option]
                         )->orWhereRaw(
                             'LOWER(JSON_UNQUOTE(JSON_EXTRACT(custom_fields, ?))) LIKE ?',
                             [$jsonPath, '%' . strtolower($option) . '%']
                         );
-                    }
-                });
+                    });
+                }
                 continue;
             }
 
