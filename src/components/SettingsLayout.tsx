@@ -42,6 +42,7 @@ export default function SettingsLayout() {
     ...(isAdminRole(user?.current_team_role)
       ? [
           { label: 'Roles', icon: <AdminPanelSettingsIcon />, path: '/settings/roles' },
+          { label: 'Users', icon: <GroupIcon />, path: '/settings/users' },
           { label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' },
         ]
       : []),

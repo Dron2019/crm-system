@@ -78,22 +78,27 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        $teamMember = $this->teams()
+        $team = $this->teams()
             ->where('teams.id', $this->current_team_id)
             ->first();
 
-        if (!$teamMember) {
+        if (!$team) {
             return false;
         }
 
-        $role = $teamMember->pivot->role;
+        // Team owner has all permissions
+        if ($team->owner_id === $this->id) {
+            return true;
+        }
+
+        $role = $team->pivot->role;
 
         if ($role === 'owner') {
             return true;
         }
 
         // Check custom role permissions first
-        $customRoleId = $teamMember->pivot->custom_role_id ?? null;
+        $customRoleId = $team->pivot->custom_role_id ?? null;
         if ($customRoleId) {
             $customRole = TeamRole::find($customRoleId);
             if ($customRole) {
@@ -110,11 +115,20 @@ class User extends Authenticatable
 
     public function roleInCurrentTeam(): ?string
     {
-        return $this->teams()
+        $team = $this->teams()
             ->where('teams.id', $this->current_team_id)
-            ->first()
-            ?->pivot
-            ?->role;
+            ->first();
+
+        if (!$team) {
+            return null;
+        }
+
+        // Team owner is always considered owner role
+        if ($team->owner_id === $this->id) {
+            return 'owner';
+        }
+
+        return $team->pivot->role;
     }
 
         /**

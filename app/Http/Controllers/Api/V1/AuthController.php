@@ -36,7 +36,8 @@ class AuthController extends Controller
             'owner_id' => $user->id,
         ]);
 
-        $team->members()->attach($user->id, ['role' => 'owner']);
+        // Add user to team as member (not owner, as per security best practice)
+        $team->members()->attach($user->id, ['role' => 'member']);
         $user->update(['current_team_id' => $team->id]);
 
         Auth::login($user);

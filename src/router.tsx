@@ -44,6 +44,7 @@ const WebhooksSettingsPage = lazy(() => import('@/pages/settings/WebhooksSetting
 const BillingSettingsPage = lazy(() => import('@/pages/settings/BillingSettingsPage'));
 const ImportSettingsPage = lazy(() => import('@/pages/settings/ImportSettingsPage'));
 const RolesSettingsPage = lazy(() => import('@/pages/settings/RolesSettingsPage'));
+const UsersSettingsPage = lazy(() => import('@/pages/settings/UsersSettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function LazyFallback() {
@@ -125,6 +126,7 @@ const router = createBrowserRouter([
               { path: 'billing', element: <SuspenseWrapper><BillingSettingsPage /></SuspenseWrapper> },
               { path: 'imports', element: <SuspenseWrapper><ImportSettingsPage /></SuspenseWrapper> },
               { path: 'roles', element: <SuspenseWrapper><RolesSettingsPage /></SuspenseWrapper> },
+              { path: 'users', element: <SuspenseWrapper><UsersSettingsPage /></SuspenseWrapper> },
             ],
           },
 

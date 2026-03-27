@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TeamRoleController;
+use App\Http\Controllers\Api\V1\UserManagementController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\MfaController;
 use App\Http\Controllers\Api\V1\EmailController;
@@ -133,6 +134,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('roles/{teamRole}', [TeamRoleController::class, 'update']);
             Route::delete('roles/{teamRole}', [TeamRoleController::class, 'destroy']);
         });
+
+        // Users Management (System-wide)
+        Route::get('users', [UserManagementController::class, 'index']);
+        Route::post('users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
+        Route::post('users/{user}/deactivate', [UserManagementController::class, 'deactivate']);
+        Route::post('users/{user}/activate', [UserManagementController::class, 'activate']);
 
         // Attachments
         Route::get('attachments', [AttachmentController::class, 'index']);
