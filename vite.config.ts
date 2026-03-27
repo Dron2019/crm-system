@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    publicDir: 'spa-public',
+    build: {
+      outDir: 'public/spa',
+      emptyOutDir: true,
+    },
+    base: mode === 'production' ? '/spa/' : '/',
     server: {
       port: 5173,
       proxy: {

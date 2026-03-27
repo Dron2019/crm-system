@@ -1,6 +1,6 @@
 # CRM System — AI-Assisted Development Guide
 
-> **Tech Stack:** Laravel 11+ · React 18+ · Material UI (MUI) v6 · PostgreSQL · Redis · Meilisearch  
+> **Tech Stack:** Laravel 11+ · React 18+ · Material UI (MUI) v6 · MySQL/PostgreSQL · File/DB Cache · Optional Meilisearch  
 > **Target:** Modern, developer-friendly CRM with AI-powered features  
 > **Date:** March 2026
 
@@ -60,7 +60,7 @@
 
 1. **Convention over Configuration** — Laravel conventions, predictable patterns
 2. **Domain-Driven Design** — Bounded contexts, ubiquitous language
-3. **API-First** — Backend is a pure API; frontend is a separate SPA
+3. **API-First** — Backend API + React SPA served from one domain in production
 4. **Type Safety End-to-End** — TypeScript on frontend, strict PHP types + generated API types
 5. **AI-Augmented, Not AI-Dependent** — AI enhances but system works fully without it
 6. **Multi-Tenant by Default** — Team/organization isolation from day one
@@ -69,7 +69,7 @@
 
 ### Developer Experience Goals
 
-- `git clone` → `docker compose up` → working system in < 3 minutes
+- `git clone` → install deps → working system in < 10 minutes
 - Hot reload on both frontend and backend
 - Auto-generated API documentation + SDK
 - Comprehensive seed data for development
@@ -150,7 +150,7 @@
 
 ### Phase 1 — Foundation (Weeks 1–3)
 
-- [ ] Project scaffolding (Laravel + React + Docker)
+- [ ] Project scaffolding (Laravel + React, non-Docker first)
 - [ ] Authentication system (Laravel Sanctum + SPA auth)
 - [ ] Multi-tenancy architecture (team-based isolation)
 - [ ] Base models, migrations, and seeders
@@ -259,7 +259,7 @@
 ### Backend (Laravel)
 
 ```
-backend/
+./
 ├── app/
 │   ├── Console/Commands/           # Artisan commands
 │   ├── Domain/                     # Domain layer (DDD)
@@ -344,8 +344,8 @@ backend/
 ### Frontend (React + MUI)
 
 ```
-frontend/
-├── public/
+./
+├── spa-public/
 ├── src/
 │   ├── app/
 │   │   ├── App.tsx                 # Root component
@@ -409,9 +409,10 @@ frontend/
 
 ### Prerequisites
 
-- Docker Desktop (with Compose v2)
-- Node.js 20+ (via nvm recommended)
-- PHP 8.3+ (optional, for IDE support — Docker handles runtime)
+- PHP 8.3+
+- Composer 2.7+
+- Node.js 20+
+- MySQL 8+ or PostgreSQL 16+
 - Git
 
 ### Quick Start
@@ -421,42 +422,25 @@ frontend/
 git clone <repo-url> crm-system && cd crm-system
 
 # Copy environment files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# Start everything
-docker compose up -d
+cp .env.example .env
 
 # Backend setup
-docker compose exec app composer install
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --seed
-
-# Frontend setup
-cd frontend && npm install && npm run dev
+composer install
+php artisan key:generate
+php artisan migrate --seed
+npm install
+npm run dev
 
 # Access
 # API:      http://localhost:8000/api/v1
 # Frontend: http://localhost:5173
-# Mailpit:  http://localhost:8025
-# Horizon:  http://localhost:8000/horizon
 ```
 
-### Docker Compose Services
+For production one-domain setup, build frontend into Laravel public assets:
 
-```yaml
-# docker-compose.yml (development)
-services:
-  app:            # PHP-FPM + Laravel
-  nginx:          # Web server / reverse proxy
-  postgres:       # PostgreSQL 16
-  redis:          # Cache + Queue broker
-  meilisearch:    # Full-text search
-  minio:          # S3-compatible storage
-  mailpit:        # Email testing
-  reverb:         # WebSocket server
-  horizon:        # Queue worker dashboard
-  scheduler:      # Laravel task scheduler
+```bash
+npm run build
+# Output is written to public/spa
 ```
 
 ---
@@ -466,8 +450,7 @@ services:
 ### Step 1: Scaffold Backend
 
 ```bash
-composer create-project laravel/laravel backend
-cd backend
+composer create-project laravel/laravel .
 composer require laravel/sanctum laravel/horizon laravel/reverb laravel/scout
 composer require --dev pestphp/pest larastan/larastan
 ```
@@ -481,8 +464,7 @@ composer require --dev pestphp/pest larastan/larastan
 ### Step 2: Scaffold Frontend
 
 ```bash
-npm create vite@latest frontend -- --template react-ts
-cd frontend
+npm create vite@latest . -- --template react-ts
 npm install @mui/material @mui/icons-material @emotion/react @emotion/styled
 npm install @tanstack/react-query zustand react-router-dom
 npm install react-hook-form @hookform/resolvers zod
