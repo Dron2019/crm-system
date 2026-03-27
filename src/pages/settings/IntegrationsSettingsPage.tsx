@@ -9,6 +9,7 @@ import {
 import EmailIcon from '@mui/icons-material/Email';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import StorageIcon from '@mui/icons-material/Storage';
+import { useNavigate } from 'react-router-dom';
 
 const integrations = [
   {
@@ -35,6 +36,8 @@ const integrations = [
 ];
 
 export default function IntegrationsSettingsPage() {
+  const navigate = useNavigate();
+
   return (
     <Box>
       <Typography variant="h6" fontWeight={600} mb={2}>
@@ -77,6 +80,11 @@ export default function IntegrationsSettingsPage() {
             <Button
               variant={integration.status === 'available' ? 'contained' : 'outlined'}
               disabled={integration.status === 'coming_soon'}
+              onClick={() => {
+                if (integration.id === 'email') {
+                  navigate('/emails');
+                }
+              }}
             >
               {integration.status === 'available' ? 'Configure' : 'Coming Soon'}
             </Button>

@@ -643,6 +643,7 @@ jobs:
 | [04-API-DESIGN.md](04-API-DESIGN.md) | API conventions, versioning, error handling, rate limiting |
 | [05-FRONTEND-ARCHITECTURE.md](05-FRONTEND-ARCHITECTURE.md) | Component patterns, state management, MUI theming |
 | [06-AI-FEATURES.md](06-AI-FEATURES.md) | AI/ML integration, prompt engineering, model selection |
+| [07-MESSENGER-INTEGRATIONS.md](07-MESSENGER-INTEGRATIONS.md) | WhatsApp/Telegram/Messenger integration architecture and implementation plan |
 
 ---
 

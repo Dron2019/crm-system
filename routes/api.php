@@ -152,6 +152,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Emails
         Route::prefix('emails')->group(function () {
             Route::apiResource('accounts', EmailController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('accounts/{account}/test', [EmailController::class, 'testAccount']);
+            Route::post('accounts/{account}/sync', [EmailController::class, 'syncAccount']);
             Route::get('messages', [EmailController::class, 'messages']);
             Route::get('messages/{emailMessage}', [EmailController::class, 'showMessage']);
             Route::post('messages', [EmailController::class, 'sendMessage']);
