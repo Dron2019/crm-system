@@ -28,8 +28,16 @@ class TeamMemberController extends Controller
 
     private function isAdminOrOwner(Request $request): bool
     {
-        $role = $request->user()->roleInCurrentTeam();
+        $user = $request->user();
+        $team = $user->currentTeam;
 
+        // Owner has full access
+        if ($team && $team->owner_id === $user->id) {
+            return true;
+        }
+
+        // Check pivot role
+        $role = $user->roleInCurrentTeam();
         return in_array($role, ['owner', 'admin'], true);
     }
 
@@ -79,6 +87,32 @@ class TeamMemberController extends Controller
                     'deactivated_at' => $owner->deactivated_at,
                     'deactivation_reason' => $owner->deactivation_reason,
                     'last_login_at' => $owner->last_login_at,
+                ]);
+            }
+        }
+
+        // Ensure current user (if admin) is present and has correct role
+        if ($this->isAdminOrOwner($request)) {
+            $currentUserId = $request->user()->id;
+            $currentMember = $members->firstWhere('id', $currentUserId);
+            
+            if (!$currentMember) {
+                // Current user missing from pivot - add them with admin role
+                $currentUser = $request->user();
+                $team->members()->syncWithoutDetaching([$currentUserId => ['role' => 'admin']]);
+                
+                $members->push([
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                    'email' => $currentUser->email,
+                    'avatar_url' => $currentUser->avatar_url,
+                    'role' => 'admin',
+                    'custom_role_id' => null,
+                    'email_verified_at' => $currentUser->email_verified_at,
+                    'is_active' => $currentUser->is_active,
+                    'deactivated_at' => $currentUser->deactivated_at,
+                    'deactivation_reason' => $currentUser->deactivation_reason,
+                    'last_login_at' => $currentUser->last_login_at,
                 ]);
             }
         }
