@@ -193,4 +193,40 @@ class UserManagementController extends Controller
 
         return response()->json(['data' => $teams]);
     }
+
+    public function moveMember(Request $request, User $user): JsonResponse
+    {
+        if (!$this->isAdmin($request)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'from_team_id' => 'nullable|uuid|exists:teams,id',
+            'to_team_id'   => 'required|uuid|exists:teams,id|different:from_team_id',
+            'role'         => 'required|in:admin,member',
+        ]);
+
+        $toTeam = Team::findOrFail($validated['to_team_id']);
+
+        // Cannot move the team owner out of their own team
+        if ($validated['from_team_id'] ?? null) {
+            $fromTeam = Team::findOrFail($validated['from_team_id']);
+            if ($fromTeam->owner_id === $user->id) {
+                return response()->json(['message' => 'Cannot move the owner of a team.'], 422);
+            }
+            $user->teams()->detach($validated['from_team_id']);
+        }
+
+        // Add to target team (syncWithoutDetaching keeps other memberships intact)
+        $user->teams()->syncWithoutDetaching([
+            $toTeam->id => ['role' => $validated['role']],
+        ]);
+
+        // Update current_team_id if user has none or was moved from current team
+        if (!$user->current_team_id || $user->current_team_id === ($validated['from_team_id'] ?? null)) {
+            $user->update(['current_team_id' => $toTeam->id]);
+        }
+
+        return response()->json(['message' => 'Member moved successfully']);
+    }
 }

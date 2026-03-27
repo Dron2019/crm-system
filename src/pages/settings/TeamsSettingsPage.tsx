@@ -15,11 +15,23 @@ import {
   TableRow,
   Tooltip,
   Alert,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupIcon from '@mui/icons-material/Group';
-import { useQuery } from '@tanstack/react-query';
+import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 
 interface TeamMember {
   id: string;
@@ -43,6 +55,14 @@ interface TeamsResponse {
   data: AdminTeam[];
 }
 
+interface MoveDialog {
+  open: boolean;
+  userId?: string;
+  userName?: string;
+  fromTeamId?: string;
+  fromTeamName?: string;
+}
+
 function roleColor(role: string): 'error' | 'warning' | 'default' {
   if (role === 'owner') return 'error';
   if (role === 'admin') return 'warning';
@@ -59,7 +79,12 @@ function initials(name: string) {
 }
 
 export default function TeamsSettingsPage() {
+  const queryClient = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [expanded, setExpanded] = useState<string | false>(false);
+  const [moveDialog, setMoveDialog] = useState<MoveDialog>({ open: false });
+  const [toTeamId, setToTeamId] = useState('');
+  const [moveRole, setMoveRole] = useState<'member' | 'admin'>('member');
 
   const { data: teamsResponse, isLoading, isError } = useQuery<TeamsResponse>({
     queryKey: ['admin-teams'],
@@ -70,6 +95,45 @@ export default function TeamsSettingsPage() {
   });
 
   const teams = teamsResponse?.data ?? [];
+
+  const moveMutation = useMutation({
+    mutationFn: ({ userId, fromTeamId, toTeamId, role }: {
+      userId: string;
+      fromTeamId?: string;
+      toTeamId: string;
+      role: string;
+    }) =>
+      api.post(`/admin/users/${userId}/move`, {
+        from_team_id: fromTeamId,
+        to_team_id: toTeamId,
+        role,
+      }),
+    onSuccess: () => {
+      addToast('Member moved successfully', 'success');
+      queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
+      setMoveDialog({ open: false });
+      setToTeamId('');
+      setMoveRole('member');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? 'Failed to move member';
+      addToast(msg, 'error');
+    },
+  });
+
+  function openMoveDialog(member: TeamMember, team: AdminTeam) {
+    setToTeamId('');
+    setMoveRole('member');
+    setMoveDialog({
+      open: true,
+      userId: member.id,
+      userName: member.name,
+      fromTeamId: team.id,
+      fromTeamName: team.name,
+    });
+  }
+
+  const targetTeams = teams.filter((t) => t.id !== moveDialog.fromTeamId);
 
   if (isLoading) {
     return (
@@ -142,6 +206,7 @@ export default function TeamsSettingsPage() {
                       <TableCell>Email</TableCell>
                       <TableCell align="center">Role</TableCell>
                       <TableCell align="center">Status</TableCell>
+                      <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -177,6 +242,19 @@ export default function TeamsSettingsPage() {
                             </Tooltip>
                           )}
                         </TableCell>
+                        <TableCell align="right">
+                          <Tooltip title={member.role === 'owner' ? 'Cannot move team owner' : 'Move to another team'}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={member.role === 'owner' || teams.length < 2}
+                                onClick={() => openMoveDialog(member, team)}
+                              >
+                                <DriveFileMoveIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -186,6 +264,66 @@ export default function TeamsSettingsPage() {
           </Accordion>
         ))
       )}
+
+      {/* Move Member Dialog */}
+      <Dialog
+        open={moveDialog.open}
+        onClose={() => setMoveDialog({ open: false })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Move Member to Another Team</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+          <Typography variant="body2">
+            Moving <strong>{moveDialog.userName}</strong> from{' '}
+            <strong>{moveDialog.fromTeamName}</strong>.
+          </Typography>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Destination Team</InputLabel>
+            <Select
+              value={toTeamId}
+              label="Destination Team"
+              onChange={(e) => setToTeamId(e.target.value)}
+            >
+              {targetTeams.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {t.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Role in new team</InputLabel>
+            <Select
+              value={moveRole}
+              label="Role in new team"
+              onChange={(e) => setMoveRole(e.target.value as 'member' | 'admin')}
+            >
+              <MenuItem value="member">Member</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMoveDialog({ open: false })}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!toTeamId || moveMutation.isPending}
+            onClick={() =>
+              moveMutation.mutate({
+                userId: moveDialog.userId!,
+                fromTeamId: moveDialog.fromTeamId,
+                toTeamId,
+                role: moveRole,
+              })
+            }
+          >
+            Move
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

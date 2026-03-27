@@ -142,6 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('users/{user}/activate', [UserManagementController::class, 'activate']);
         Route::put('users/{user}/role', [UserManagementController::class, 'updateRole']);
         Route::get('admin/teams', [UserManagementController::class, 'teams']);
+        Route::post('admin/users/{user}/move', [UserManagementController::class, 'moveMember']);
 
         // Attachments
         Route::get('attachments', [AttachmentController::class, 'index']);
