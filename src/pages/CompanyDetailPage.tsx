@@ -2,8 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Grid2 as Grid,
   Chip,
   Avatar,
@@ -17,6 +15,7 @@ import {
   Tabs,
   IconButton,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -26,21 +25,31 @@ import LanguageIcon from '@mui/icons-material/Language';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useCompany } from '@/hooks/useCompanies';
+import { useEntityDeals, useEntityActivities, useEntityNotes, useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EntityTimeline from '@/components/EntityTimeline';
 import api from '@/lib/api';
+import type { Contact } from '@/types';
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null | undefined }) {
-  if (!value) return null;
-  return (
-    <Box display="flex" alignItems="center" gap={1.5} py={1}>
-      <Box color="text.secondary">{icon}</Box>
-      <Box>
+  if (!value) {
+    return (
+      <Box display="grid" gridTemplateColumns="26px 140px 1fr" py={0.75} gap={1}>
+        <Box color="text.disabled">{icon}</Box>
         <Typography variant="caption" color="text.secondary">{label}</Typography>
-        <Typography variant="body2">{value}</Typography>
+        <Typography variant="body2" color="text.disabled">—</Typography>
       </Box>
+    );
+  }
+
+  return (
+    <Box display="grid" gridTemplateColumns="26px 140px 1fr" py={0.75} gap={1}>
+      <Box color="text.secondary">{icon}</Box>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+      <Typography variant="body2" fontWeight={500}>{value}</Typography>
     </Box>
   );
 }
@@ -53,6 +62,19 @@ export default function CompanyDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
+
+  const { data: timeline, isLoading: timelineLoading } = useEntityTimeline('companies', id ?? '');
+  const { data: dealsData } = useEntityDeals('companies', id ?? '');
+  const { data: activitiesData } = useEntityActivities('companies', id ?? '');
+  const { data: notesData } = useEntityNotes('companies', id ?? '');
+  const { data: contactsData } = useQuery<{ data: Contact[] }>({
+    queryKey: ['entity-contacts', id],
+    queryFn: async () => {
+      const { data } = await api.get(`/companies/${id}/contacts`);
+      return data;
+    },
+    enabled: !!id,
+  });
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/companies/${id}`),
@@ -90,7 +112,7 @@ export default function CompanyDetailPage() {
 
   return (
     <Box>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
         <IconButton onClick={() => navigate('/companies')}>
           <ArrowBackIcon />
         </IconButton>
@@ -119,42 +141,57 @@ export default function CompanyDetailPage() {
       />
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} mb={2}>Details</Typography>
-              <InfoRow icon={<LanguageIcon fontSize="small" />} label="Domain" value={company.domain} />
-              <InfoRow icon={<LanguageIcon fontSize="small" />} label="Website" value={company.website} />
-              <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={company.phone} />
-              <InfoRow icon={<BusinessIcon fontSize="small" />} label="Size" value={company.size} />
-              <InfoRow icon={<BusinessIcon fontSize="small" />} label="Annual Revenue" value={formatRevenue(company.annual_revenue)} />
-              {address && <InfoRow icon={<LocationOnIcon fontSize="small" />} label="Address" value={address} />}
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" fontWeight={700} mb={1.25}>Company Details</Typography>
+            <InfoRow icon={<LanguageIcon fontSize="small" />} label="Domain" value={company.domain} />
+            <InfoRow icon={<LanguageIcon fontSize="small" />} label="Website" value={company.website} />
+            <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={company.phone} />
+            <InfoRow icon={<BusinessIcon fontSize="small" />} label="Industry" value={company.industry} />
+            <InfoRow icon={<BusinessIcon fontSize="small" />} label="Size" value={company.size} />
+            <InfoRow icon={<BusinessIcon fontSize="small" />} label="Annual Revenue" value={formatRevenue(company.annual_revenue)} />
+            <InfoRow icon={<LocationOnIcon fontSize="small" />} label="Address" value={address || null} />
+            <InfoRow
+              icon={<BusinessIcon fontSize="small" />}
+              label="Created"
+              value={company.created_at ? new Date(company.created_at).toLocaleString() : null}
+            />
 
-              {company.tags && company.tags.length > 0 && (
-                <Box mt={2}>
-                  <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Tags</Typography>
-                  <Box display="flex" gap={0.5} flexWrap="wrap">
-                    {company.tags.map((tag) => (
-                      <Chip key={tag.id} label={tag.name} size="small" sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 600 }} />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+            <Divider sx={{ my: 1.25 }} />
+
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Tags</Typography>
+            {company.tags && company.tags.length > 0 ? (
+              <Box display="flex" gap={0.5} flexWrap="wrap">
+                {company.tags.map((tag) => (
+                  <Chip key={tag.id} size="small" label={tag.name} sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 700 }} />
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2">No tags</Typography>
+            )}
+          </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <Box px={2} pt={1.5}>
+              <Typography variant="h6" fontWeight={700}>History</Typography>
+            </Box>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-              <Tab label={`Contacts (${company.contacts?.length ?? 0})`} />
-              <Tab label={`Deals (${company.deals?.length ?? 0})`} />
+              <Tab label="Timeline" />
+              <Tab label={`Contacts (${contactsData?.data?.length ?? 0})`} />
+              <Tab label={`Deals (${dealsData?.data?.length ?? 0})`} />
+              <Tab label={`Activities (${activitiesData?.data?.length ?? 0})`} />
+              <Tab label={`Notes (${notesData?.data?.length ?? 0})`} />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
-                company.contacts && company.contacts.length > 0 ? (
+                <EntityTimeline items={timeline ?? []} loading={timelineLoading} />
+              )}
+              {tab === 1 && (
+                contactsData?.data && contactsData.data.length > 0 ? (
                   <List disablePadding>
-                    {company.contacts.map((contact) => (
+                    {contactsData.data.map((contact) => (
                       <ListItem
                         key={contact.id}
                         sx={{ cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
@@ -177,10 +214,10 @@ export default function CompanyDetailPage() {
                   <Typography variant="body2" color="text.secondary" py={2}>No contacts linked.</Typography>
                 )
               )}
-              {tab === 1 && (
-                company.deals && company.deals.length > 0 ? (
+              {tab === 2 && (
+                dealsData?.data && dealsData.data.length > 0 ? (
                   <List disablePadding>
-                    {company.deals.map((deal) => (
+                    {dealsData.data.map((deal) => (
                       <ListItem
                         key={deal.id}
                         sx={{ cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
@@ -202,6 +239,43 @@ export default function CompanyDetailPage() {
                   </List>
                 ) : (
                   <Typography variant="body2" color="text.secondary" py={2}>No deals yet.</Typography>
+                )
+              )}
+              {tab === 3 && (
+                activitiesData?.data && activitiesData.data.length > 0 ? (
+                  <List disablePadding>
+                    {activitiesData.data.map((activity) => (
+                      <ListItem key={activity.id} divider>
+                        <ListItemText
+                          primary={activity.title}
+                          secondary={`${activity.type} · ${new Date(activity.created_at).toLocaleDateString()}`}
+                          primaryTypographyProps={{ fontWeight: 600, variant: 'body2' }}
+                        />
+                        {activity.is_completed && <Chip label="Done" size="small" color="success" />}
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" py={2}>No activities yet.</Typography>
+                )
+              )}
+              {tab === 4 && (
+                notesData?.data && notesData.data.length > 0 ? (
+                  <List disablePadding>
+                    {notesData.data.map((note) => (
+                      <ListItem key={note.id} divider sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <Box display="flex" justifyContent="space-between" width="100%" mb={0.5}>
+                          <Typography variant="caption" color="text.secondary">
+                            {note.user?.name || 'Unknown'} · {new Date(note.created_at).toLocaleDateString()}
+                          </Typography>
+                          {note.is_pinned && <Chip label="Pinned" size="small" color="warning" />}
+                        </Box>
+                        <Typography variant="body2">{note.body}</Typography>
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" py={2}>No notes yet.</Typography>
                 )
               )}
             </Box>

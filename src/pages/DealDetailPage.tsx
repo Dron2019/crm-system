@@ -2,18 +2,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Grid2 as Grid,
   Chip,
-  Avatar,
   Button,
   Paper,
   Tab,
   Tabs,
   IconButton,
   CircularProgress,
-  LinearProgress,
   TextField,
   MenuItem,
   List,
@@ -21,10 +17,10 @@ import {
   ListItemText,
   ListItemIcon,
   Divider,
+  Stack,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -33,16 +29,27 @@ import PushPinIcon from '@mui/icons-material/PushPin';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDeal } from '@/hooks/useDeals';
+import { useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EntityTimeline from '@/components/EntityTimeline';
 import api from '@/lib/api';
 import type { Activity, Note } from '@/types';
 
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailRow({ label, value, strong = false }: { label: string; value: React.ReactNode; strong?: boolean }) {
   return (
-    <Box display="flex" justifyContent="space-between" alignItems="flex-start" py={0.5} gap={2}>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
-      <Typography variant="body2" textAlign="right" sx={{ wordBreak: 'break-word' }}>
+    <Box display="grid" gridTemplateColumns="140px 1fr" py={0.75} gap={1.5}>
+      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: '20px' }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          lineHeight: '20px',
+          fontWeight: strong ? 700 : 500,
+          wordBreak: 'break-word',
+        }}
+      >
         {value ?? '—'}
       </Typography>
     </Box>
@@ -62,6 +69,48 @@ const typeColors: Record<string, 'primary' | 'secondary' | 'success' | 'warning'
   call: 'primary', email: 'info', meeting: 'warning', task: 'secondary', note: 'success',
 };
 
+function StageRail({
+  stages,
+  currentStageId,
+}: {
+  stages: Array<{ id: string; name: string; color: string }>;
+  currentStageId?: string;
+}) {
+  return (
+    <Box display="flex" gap={0.75} overflow="auto" pb={0.5}>
+      {stages.map((stage, index) => {
+        const active = stage.id === currentStageId;
+        const bg = active ? (stage.color || '#16a34a') : '#eef2ff';
+        const fg = active ? '#ffffff' : '#334155';
+
+        return (
+          <Box
+            key={stage.id}
+            sx={{
+              minWidth: 150,
+              px: 2,
+              py: 1,
+              borderRadius: 1,
+              color: fg,
+              bgcolor: bg,
+              fontSize: 12,
+              fontWeight: active ? 700 : 500,
+              textAlign: 'center',
+              position: 'relative',
+              clipPath:
+                index < stages.length - 1
+                  ? 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)'
+                  : 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)',
+            }}
+          >
+            {stage.name}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -72,6 +121,8 @@ export default function DealDetailPage() {
   const [noteBody, setNoteBody] = useState('');
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
+
+  const { data: timeline, isLoading: timelineLoading } = useEntityTimeline('deals', id ?? '');
 
   // Fetch activities for this deal
   const { data: activitiesData } = useQuery<{ data: Activity[] }>({
@@ -175,14 +226,10 @@ export default function DealDetailPage() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
+      <Box display="flex" alignItems="center" gap={1.5} mb={2}>
         <IconButton onClick={() => navigate('/deals')}>
           <ArrowBackIcon />
         </IconButton>
-        <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main' }}>
-          <MonetizationOnIcon />
-        </Avatar>
         <Box flex={1}>
           <Typography variant="h5" fontWeight={700}>{deal.title}</Typography>
           <Box display="flex" gap={1} alignItems="center" mt={0.5}>
@@ -213,6 +260,18 @@ export default function DealDetailPage() {
         </Button>
       </Box>
 
+      {deal.pipeline?.stages && deal.pipeline.stages.length > 0 && (
+        <Paper sx={{ p: 1, mb: 2, bgcolor: '#f8fafc', border: '1px solid', borderColor: 'divider' }}>
+          <StageRail
+            stages={deal.pipeline.stages
+              .slice()
+              .sort((a, b) => a.display_order - b.display_order)
+              .map((stage) => ({ id: stage.id, name: stage.name, color: stage.color }))}
+            currentStageId={deal.stage?.id}
+          />
+        </Paper>
+      )}
+
       <ConfirmDialog
         open={deleteOpen}
         title="Delete Deal"
@@ -223,138 +282,84 @@ export default function DealDetailPage() {
       />
 
       <Grid container spacing={3}>
-        {/* Sidebar */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h4" fontWeight={800} color="primary" mb={1}>
-                {deal.currency} {Number(deal.value).toLocaleString()}
-              </Typography>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" fontWeight={700} mb={1.5}>Deal Details</Typography>
+            <DetailRow label="Deal title" value={deal.title} strong />
+            <DetailRow label="Budget" value={`${deal.currency} ${Number(deal.value).toLocaleString()}`} strong />
+            <DetailRow label="Probability" value={`${deal.probability}%`} />
+            <DetailRow
+              label="Created"
+              value={deal.created_at ? new Date(deal.created_at).toLocaleString() : '—'}
+            />
+            <DetailRow
+              label="Expected close"
+              value={deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : '—'}
+            />
 
-              <Box mb={2}>
-                <Box display="flex" justifyContent="space-between" mb={0.5}>
-                  <Typography variant="caption" color="text.secondary">Probability</Typography>
-                  <Typography variant="caption" fontWeight={600}>{deal.probability}%</Typography>
-                </Box>
-                <LinearProgress variant="determinate" value={deal.probability} sx={{ height: 6, borderRadius: 3 }} />
+            <Divider sx={{ my: 1.25 }} />
+
+            <DetailRow label="Contact" value={deal.contact?.full_name ?? '—'} />
+            <DetailRow label="Company" value={deal.company?.name ?? '—'} />
+            <DetailRow label="Pipeline" value={deal.pipeline?.name ?? '—'} />
+            <DetailRow label="Stage" value={deal.stage?.name ?? '—'} />
+            <DetailRow label="Owner" value={deal.assigned_to?.name ?? '—'} />
+
+            {!!deal.tags?.length && (
+              <Box mt={1}>
+                <Typography variant="caption" color="text.secondary">Tags</Typography>
+                <Stack direction="row" gap={0.5} mt={0.75} flexWrap="wrap">
+                  {deal.tags.map((tag) => (
+                    <Chip
+                      key={tag.id}
+                      size="small"
+                      label={tag.name}
+                      sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 700 }}
+                    />
+                  ))}
+                </Stack>
               </Box>
+            )}
 
-              <Divider sx={{ my: 1 }} />
+            {deal.lost_reason && (
+              <Box mt={1.5} p={1.2} borderRadius={1} bgcolor="#fef2f2">
+                <Typography variant="caption" color="error.main">Lost reason</Typography>
+                <Typography variant="body2" color="text.primary">{deal.lost_reason}</Typography>
+              </Box>
+            )}
 
-              <DetailRow label="Deal ID" value={deal.id} />
-              <DetailRow label="Title" value={deal.title} />
-              <DetailRow label="Status" value={deal.status} />
-              <DetailRow label="Value" value={`${deal.currency} ${Number(deal.value).toLocaleString()}`} />
-              <DetailRow label="Currency" value={deal.currency} />
-              <DetailRow label="Probability" value={`${deal.probability}%`} />
-              <DetailRow
-                label="Expected Close Date"
-                value={deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : '—'}
-              />
-              <DetailRow label="Pipeline" value={deal.pipeline?.name ?? '—'} />
-              <DetailRow label="Stage" value={deal.stage?.name ?? '—'} />
-              <DetailRow label="Contact" value={deal.contact?.full_name ?? '—'} />
-              <DetailRow label="Company" value={deal.company?.name ?? '—'} />
-              <DetailRow label="Assigned To" value={deal.assigned_to?.name ?? '—'} />
-              <DetailRow
-                label="Created At"
-                value={deal.created_at ? new Date(deal.created_at).toLocaleString() : '—'}
-              />
-              <DetailRow
-                label="Updated At"
-                value={deal.updated_at ? new Date(deal.updated_at).toLocaleString() : '—'}
-              />
-
-              {deal.lost_reason && (
-                <Box mt={1.5} p={1.25} borderRadius={1} bgcolor="error.50">
-                  <Typography variant="caption" color="error">Lost Reason</Typography>
-                  <Typography variant="body2">{deal.lost_reason}</Typography>
+            <Box mt={1.5}>
+              <Typography variant="caption" color="text.secondary">Custom fields</Typography>
+              {deal.custom_fields && Object.keys(deal.custom_fields).length > 0 ? (
+                <Box mt={0.5}>
+                  {Object.entries(deal.custom_fields).map(([key, value]) => (
+                    <DetailRow key={key} label={key} value={formatCustomFieldValue(value)} />
+                  ))}
                 </Box>
+              ) : (
+                <Typography variant="body2" mt={0.5}>No custom fields</Typography>
               )}
-
-              <Box mt={1.5}>
-                <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Tags</Typography>
-                {deal.tags && deal.tags.length > 0 ? (
-                  <Box display="flex" gap={0.5} flexWrap="wrap">
-                    {deal.tags.map((tag) => (
-                      <Chip key={tag.id} label={tag.name} size="small" sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 600 }} />
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body2">—</Typography>
-                )}
-              </Box>
-
-              <Box mt={1.5}>
-                <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Custom Fields</Typography>
-                {deal.custom_fields && Object.keys(deal.custom_fields).length > 0 ? (
-                  <Box>
-                    {Object.entries(deal.custom_fields).map(([key, value]) => (
-                      <DetailRow key={key} label={key} value={formatCustomFieldValue(value)} />
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body2">—</Typography>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
         </Grid>
 
-        {/* Main content */}
-        <Grid size={{ xs: 12, md: 8 }}>
-          {/* Pipeline progress */}
-          {deal.pipeline?.stages && deal.stage && (
-            <Paper sx={{ mb: 2, p: 2 }}>
-              <Typography variant="subtitle2" fontWeight={600} mb={1.5}>Pipeline Progress</Typography>
-              <Box display="flex" gap={0.5}>
-                {deal.pipeline.stages
-                  .slice()
-                  .sort((a, b) => a.display_order - b.display_order)
-                  .map((stage) => {
-                    const isCurrent = stage.id === deal.stage!.id;
-                    const isPast = stage.display_order < deal.stage!.display_order;
-                    return (
-                      <Box
-                        key={stage.id}
-                        flex={1}
-                        py={0.75}
-                        px={1}
-                        textAlign="center"
-                        borderRadius={1}
-                        sx={{
-                          bgcolor: isCurrent
-                            ? `${stage.color || '#6366f1'}30`
-                            : isPast
-                            ? `${stage.color || '#6366f1'}15`
-                            : 'action.hover',
-                          border: isCurrent ? `2px solid ${stage.color || '#6366f1'}` : '2px solid transparent',
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          fontWeight={isCurrent ? 700 : 500}
-                          color={isCurrent ? stage.color || '#6366f1' : 'text.secondary'}
-                          noWrap
-                        >
-                          {stage.name}
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-              </Box>
-            </Paper>
-          )}
-
-          <Paper>
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <Box px={2} pt={1.75}>
+              <Typography variant="h6" fontWeight={700}>History</Typography>
+            </Box>
+            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
+              <Tab label="Timeline" />
               <Tab label="Activities" />
               <Tab label="Notes" />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
+                <EntityTimeline items={timeline ?? []} loading={timelineLoading} />
+              )}
+
+              {tab === 1 && (
                 <Box>
-                  {/* Add activity form */}
                   <Box display="flex" gap={1} mb={2} flexWrap="wrap">
                     <TextField
                       select
@@ -395,7 +400,6 @@ export default function DealDetailPage() {
                     </Button>
                   </Box>
 
-                  {/* Activity list */}
                   {activitiesData?.data && activitiesData.data.length > 0 ? (
                     <List dense disablePadding>
                       {activitiesData.data.map((activity, i) => (
@@ -403,20 +407,11 @@ export default function DealDetailPage() {
                           {i > 0 && <Divider />}
                           <ListItem
                             secondaryAction={
-                              <Box display="flex" gap={0.5} alignItems="center">
-                                {activity.scheduled_at && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    {new Date(activity.scheduled_at).toLocaleDateString()}
-                                  </Typography>
-                                )}
-                                <Chip
-                                  label={activity.is_completed ? 'Done' : 'Pending'}
-                                  size="small"
-                                  color={activity.is_completed ? 'success' : 'warning'}
-                                  variant="filled"
-                                  sx={{ fontWeight: 600, fontSize: 10 }}
-                                />
-                              </Box>
+                              <Chip
+                                label={activity.is_completed ? 'Done' : 'Pending'}
+                                size="small"
+                                color={activity.is_completed ? 'success' : 'warning'}
+                              />
                             }
                           >
                             <ListItemIcon sx={{ minWidth: 36 }}>
@@ -441,16 +436,13 @@ export default function DealDetailPage() {
                                     fontWeight={600}
                                     sx={{
                                       textDecoration: activity.is_completed ? 'line-through' : 'none',
-                                      cursor: 'pointer',
-                                      '&:hover': { color: 'primary.main' },
                                     }}
-                                    onClick={() => navigate(`/activities/${activity.id}`)}
                                   >
                                     {activity.title}
                                   </Typography>
                                 </Box>
                               }
-                              secondary={activity.description}
+                              secondary={activity.description || 'No details'}
                             />
                           </ListItem>
                         </Box>
@@ -464,9 +456,8 @@ export default function DealDetailPage() {
                 </Box>
               )}
 
-              {tab === 1 && (
+              {tab === 2 && (
                 <Box>
-                  {/* Add note form */}
                   <Box display="flex" gap={1} mb={2}>
                     <TextField
                       size="small"
@@ -524,9 +515,7 @@ export default function DealDetailPage() {
                       ))}
                     </List>
                   ) : (
-                    <Typography variant="body2" color="text.secondary" py={1}>
-                      No notes yet.
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" py={1}>No notes yet.</Typography>
                   )}
                 </Box>
               )}

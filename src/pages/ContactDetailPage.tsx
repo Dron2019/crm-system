@@ -2,8 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Grid2 as Grid,
   Chip,
   Avatar,
@@ -17,6 +15,7 @@ import {
   Tabs,
   IconButton,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -29,19 +28,28 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useContact } from '@/hooks/useContacts';
+import { useEntityActivities, useEntityDeals, useEntityNotes, useEntityTimeline } from '@/hooks/useEntityActions';
 import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EntityTimeline from '@/components/EntityTimeline';
 import api from '@/lib/api';
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null | undefined }) {
-  if (!value) return null;
-  return (
-    <Box display="flex" alignItems="center" gap={1.5} py={1}>
-      <Box color="text.secondary">{icon}</Box>
-      <Box>
+  if (!value) {
+    return (
+      <Box display="grid" gridTemplateColumns="26px 140px 1fr" py={0.75} gap={1}>
+        <Box color="text.disabled">{icon}</Box>
         <Typography variant="caption" color="text.secondary">{label}</Typography>
-        <Typography variant="body2">{value}</Typography>
+        <Typography variant="body2" color="text.disabled">—</Typography>
       </Box>
+    );
+  }
+
+  return (
+    <Box display="grid" gridTemplateColumns="26px 140px 1fr" py={0.75} gap={1}>
+      <Box color="text.secondary">{icon}</Box>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+      <Typography variant="body2" fontWeight={500}>{value}</Typography>
     </Box>
   );
 }
@@ -54,6 +62,11 @@ export default function ContactDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
+
+  const { data: timeline, isLoading: timelineLoading } = useEntityTimeline('contacts', id ?? '');
+  const { data: dealsData } = useEntityDeals('contacts', id ?? '');
+  const { data: activitiesData } = useEntityActivities('contacts', id ?? '');
+  const { data: notesData } = useEntityNotes('contacts', id ?? '');
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/contacts/${id}`),
@@ -84,8 +97,7 @@ export default function ContactDetailPage() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
         <IconButton onClick={() => navigate('/contacts')}>
           <ArrowBackIcon />
         </IconButton>
@@ -94,7 +106,7 @@ export default function ContactDetailPage() {
         </Avatar>
         <Box flex={1}>
           <Typography variant="h5" fontWeight={700}>{contact.full_name}</Typography>
-          <Typography variant="body2" color="text.secondary">{contact.job_title}</Typography>
+          <Typography variant="body2" color="text.secondary">{contact.job_title || 'No job title'}</Typography>
         </Box>
         <Chip
           label={contact.status}
@@ -119,83 +131,85 @@ export default function ContactDetailPage() {
       />
 
       <Grid container spacing={3}>
-        {/* Left column - Details */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight={600} mb={2}>Details</Typography>
-              <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={contact.email} />
-              <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={contact.phone} />
-              <InfoRow icon={<PhoneIcon fontSize="small" />} label="Mobile" value={contact.mobile} />
-              <InfoRow icon={<PersonIcon fontSize="small" />} label="Source" value={contact.source} />
-              <InfoRow icon={<PersonIcon fontSize="small" />} label="Assigned To" value={contact.assigned_to?.name} />
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" fontWeight={700} mb={1.25}>Contact Details</Typography>
+            <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={contact.email} />
+            <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={contact.phone} />
+            <InfoRow icon={<PhoneIcon fontSize="small" />} label="Mobile" value={contact.mobile} />
+            <InfoRow icon={<PersonIcon fontSize="small" />} label="Source" value={contact.source} />
+            <InfoRow icon={<PersonIcon fontSize="small" />} label="Status" value={contact.status} />
+            <InfoRow icon={<PersonIcon fontSize="small" />} label="Assigned" value={contact.assigned_to?.name} />
+            <InfoRow
+              icon={<PersonIcon fontSize="small" />}
+              label="Created"
+              value={contact.created_at ? new Date(contact.created_at).toLocaleString() : null}
+            />
 
-              {contact.tags && contact.tags.length > 0 && (
-                <Box mt={2}>
-                  <Box display="flex" alignItems="center" gap={0.5} mb={1}>
-                    <LocalOfferIcon fontSize="small" color="action" />
-                    <Typography variant="caption" color="text.secondary">Tags</Typography>
-                  </Box>
-                  <Box display="flex" gap={0.5} flexWrap="wrap">
-                    {contact.tags.map((tag) => (
-                      <Chip
-                        key={tag.id}
-                        label={tag.name}
-                        size="small"
-                        sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 600 }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+            <Divider sx={{ my: 1.25 }} />
 
-          {/* Companies */}
-          {contact.companies && contact.companies.length > 0 && (
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={600} mb={1}>Companies</Typography>
-                <List disablePadding>
-                  {contact.companies.map((company) => (
-                    <ListItem
-                      key={company.id}
-                      disablePadding
-                      sx={{ py: 0.5, cursor: 'pointer' }}
-                      onClick={() => navigate(`/companies/${company.id}`)}
-                    >
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32, fontSize: 14 }}>
-                          <BusinessIcon fontSize="small" />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={company.name}
-                        secondary={company.industry}
-                        primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                        secondaryTypographyProps={{ variant: 'caption' }}
-                      />
-                    </ListItem>
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Companies</Typography>
+            {contact.companies && contact.companies.length > 0 ? (
+              <List dense disablePadding>
+                {contact.companies.map((company) => (
+                  <ListItem
+                    key={company.id}
+                    sx={{ px: 0, cursor: 'pointer' }}
+                    onClick={() => navigate(`/companies/${company.id}`)}
+                  >
+                    <ListItemAvatar sx={{ minWidth: 34 }}>
+                      <Avatar sx={{ width: 26, height: 26, bgcolor: 'secondary.main' }}>
+                        <BusinessIcon sx={{ fontSize: 14 }} />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={company.name}
+                      primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2">No linked companies</Typography>
+            )}
+
+            <Box mt={1.25}>
+              <Box display="flex" alignItems="center" gap={0.75} mb={0.75}>
+                <LocalOfferIcon fontSize="small" color="action" />
+                <Typography variant="caption" color="text.secondary">Tags</Typography>
+              </Box>
+              {contact.tags && contact.tags.length > 0 ? (
+                <Box display="flex" gap={0.5} flexWrap="wrap">
+                  {contact.tags.map((tag) => (
+                    <Chip key={tag.id} size="small" label={tag.name} sx={{ bgcolor: `${tag.color}20`, color: tag.color, fontWeight: 700 }} />
                   ))}
-                </List>
-              </CardContent>
-            </Card>
-          )}
+                </Box>
+              ) : (
+                <Typography variant="body2">No tags</Typography>
+              )}
+            </Box>
+          </Paper>
         </Grid>
 
-        {/* Right column - Tabs: Activities, Deals, Notes */}
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
+            <Box px={2} pt={1.5}>
+              <Typography variant="h6" fontWeight={700}>History</Typography>
+            </Box>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-              <Tab label={`Deals (${contact.deals?.length ?? 0})`} />
-              <Tab label={`Activities (${contact.activities?.length ?? 0})`} />
-              <Tab label={`Notes (${contact.notes?.length ?? 0})`} />
+              <Tab label="Timeline" />
+              <Tab label={`Deals (${dealsData?.data?.length ?? 0})`} />
+              <Tab label={`Activities (${activitiesData?.data?.length ?? 0})`} />
+              <Tab label={`Notes (${notesData?.data?.length ?? 0})`} />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
-                contact.deals && contact.deals.length > 0 ? (
+                <EntityTimeline items={timeline ?? []} loading={timelineLoading} />
+              )}
+              {tab === 1 && (
+                dealsData?.data && dealsData.data.length > 0 ? (
                   <List disablePadding>
-                    {contact.deals.map((deal) => (
+                    {dealsData.data.map((deal) => (
                       <ListItem
                         key={deal.id}
                         sx={{ cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
@@ -219,10 +233,10 @@ export default function ContactDetailPage() {
                   <Typography variant="body2" color="text.secondary" py={2}>No deals yet.</Typography>
                 )
               )}
-              {tab === 1 && (
-                contact.activities && contact.activities.length > 0 ? (
+              {tab === 2 && (
+                activitiesData?.data && activitiesData.data.length > 0 ? (
                   <List disablePadding>
-                    {contact.activities.map((activity) => (
+                    {activitiesData.data.map((activity) => (
                       <ListItem key={activity.id} divider>
                         <ListItemText
                           primary={activity.title}
@@ -237,10 +251,10 @@ export default function ContactDetailPage() {
                   <Typography variant="body2" color="text.secondary" py={2}>No activities yet.</Typography>
                 )
               )}
-              {tab === 2 && (
-                contact.notes && contact.notes.length > 0 ? (
+              {tab === 3 && (
+                notesData?.data && notesData.data.length > 0 ? (
                   <List disablePadding>
-                    {contact.notes.map((note) => (
+                    {notesData.data.map((note) => (
                       <ListItem key={note.id} divider sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                         <Box display="flex" justifyContent="space-between" width="100%" mb={0.5}>
                           <Typography variant="caption" color="text.secondary">
