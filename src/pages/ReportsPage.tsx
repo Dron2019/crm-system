@@ -76,6 +76,129 @@ function KpiCard({
   );
 }
 
+function HorizontalBars({
+  title,
+  rows,
+  valueFormatter = (n) => String(n),
+}: {
+  title: string;
+  rows: Array<{ label: string; value: number }>;
+  valueFormatter?: (n: number) => string;
+}) {
+  const maxValue = Math.max(...rows.map((r) => r.value), 1);
+
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          {title}
+        </Typography>
+        {rows.length === 0 ? (
+          <Typography color="text.secondary">No data yet</Typography>
+        ) : (
+          <Box display="flex" flexDirection="column" gap={1.25}>
+            {rows.map((row) => {
+              const pct = (row.value / maxValue) * 100;
+              return (
+                <Box key={row.label}>
+                  <Box display="flex" justifyContent="space-between" mb={0.5}>
+                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                      {row.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {valueFormatter(row.value)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ height: 10, bgcolor: 'action.hover', borderRadius: 999, overflow: 'hidden' }}>
+                    <Box
+                      sx={{
+                        width: `${pct}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #0ea5e9 0%, #4f46e5 100%)',
+                      }}
+                    />
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RevenueTrend({
+  title,
+  points,
+}: {
+  title: string;
+  points: Array<{ label: string; value: number }>;
+}) {
+  const width = 680;
+  const height = 220;
+  const padding = 24;
+
+  const values = points.map((p) => p.value);
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(max - min, 1);
+
+  const xFor = (index: number) => {
+    if (points.length <= 1) return padding;
+    return padding + (index * (width - padding * 2)) / (points.length - 1);
+  };
+
+  const yFor = (value: number) => {
+    const normalized = (value - min) / range;
+    return height - padding - normalized * (height - padding * 2);
+  };
+
+  const polyline = points
+    .map((p, i) => `${xFor(i)},${yFor(p.value)}`)
+    .join(' ');
+
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          {title}
+        </Typography>
+        {points.length < 2 ? (
+          <Typography color="text.secondary">Not enough data for trend</Typography>
+        ) : (
+          <Box>
+            <Box sx={{ overflowX: 'auto' }}>
+              <svg width="100%" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
+                <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#cbd5e1" />
+                <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#cbd5e1" />
+                <polyline
+                  fill="none"
+                  stroke="#4f46e5"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  points={polyline}
+                />
+                {points.map((p, i) => (
+                  <circle key={`${p.label}-${i}`} cx={xFor(i)} cy={yFor(p.value)} r="3.5" fill="#4f46e5" />
+                ))}
+              </svg>
+            </Box>
+            <Box display="flex" justifyContent="space-between" mt={0.5}>
+              {points.map((p, i) => (
+                <Typography key={`${p.label}-lbl-${i}`} variant="caption" color="text.secondary" sx={{ minWidth: 40 }}>
+                  {p.label}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function OverviewTab() {
   const { data, isLoading } = useOverviewReport();
 
@@ -124,22 +247,28 @@ function OverviewTab() {
       </Grid>
 
       {data.contacts.by_status.length > 0 && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Contacts by Status
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              {data.contacts.by_status.map((s) => (
-                <Chip
-                  key={s.status}
-                  label={`${s.status}: ${s.count}`}
-                  variant="outlined"
-                />
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <HorizontalBars
+              title="Contacts by Status"
+              rows={data.contacts.by_status.map((s) => ({ label: s.status, value: s.count }))}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Status Buckets
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {data.contacts.by_status.map((s) => (
+                    <Chip key={s.status} label={`${s.status}: ${s.count}`} variant="outlined" />
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
       <Card>
@@ -163,6 +292,7 @@ function OverviewTab() {
           </Grid>
         </CardContent>
       </Card>
+
     </Box>
   );
 }
@@ -221,6 +351,17 @@ function PipelineTab() {
           </TableContainer>
         </CardContent>
       </Card>
+
+      <Box mt={3}>
+        <HorizontalBars
+          title="Stage Value Distribution"
+          rows={data.stages.map((stage) => ({
+            label: stage.stage_name,
+            value: Number(stage.total_value),
+          }))}
+          valueFormatter={(n) => `$${Number(n).toLocaleString()}`}
+        />
+      </Box>
     </Box>
   );
 }
@@ -249,6 +390,21 @@ function ActivityTab() {
       </Grid>
 
       <Grid container spacing={3}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <HorizontalBars
+            title="Activity Mix by Type"
+            rows={data.by_type.map((item) => ({ label: item.type, value: item.count }))}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <HorizontalBars
+            title="Team Activity Output"
+            rows={data.by_user.map((item) => ({ label: item.user_name, value: item.count }))}
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} mt={0.5}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
@@ -367,6 +523,16 @@ function RevenueTab() {
           </TableContainer>
         </CardContent>
       </Card>
+
+      <Box mt={3}>
+        <RevenueTrend
+          title="Revenue Trend (Draft)"
+          points={data.monthly.map((item) => ({
+            label: item.month,
+            value: Number(item.revenue),
+          }))}
+        />
+      </Box>
     </Box>
   );
 }
