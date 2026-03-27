@@ -12,6 +12,7 @@ interface DealsParams {
   assigned_to?: string;
   sort?: string;
   direction?: string;
+  [key: string]: string | number | undefined;
 }
 
 export function useDeals(params: DealsParams = {}) {

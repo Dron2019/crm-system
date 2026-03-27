@@ -22,6 +22,10 @@ import {
   TableHead,
   TableRow,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
@@ -29,6 +33,7 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import {
   DndContext,
   DragOverlay,
@@ -41,10 +46,9 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
 import { useDeals, usePipelines } from '@/hooks/useDeals';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Deal, Stage } from '@/types';
-import { useQuery } from '@tanstack/react-query';
 import type { CustomFieldDefinition } from '@/components/CustomFieldRenderer';
 
 function DealCard({ deal, onClick, isDragOverlay }: { deal: Deal; onClick: () => void; isDragOverlay?: boolean }) {
@@ -171,14 +175,25 @@ export default function DealsPage() {
   const queryClient = useQueryClient();
   const [view, setView] = useState<'kanban' | 'list'>((searchParams.get('view') as 'kanban' | 'list') ?? 'kanban');
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '');
-  const [stageFilter, setStageFilter] = useState(searchParams.get('stage_id') ?? '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') ?? 'created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
     (searchParams.get('direction') as 'asc' | 'desc') ?? 'desc',
   );
   const [selectedPipeline, setSelectedPipeline] = useState<string>(searchParams.get('pipeline_id') ?? '');
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const [fieldFilters, setFieldFilters] = useState<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      if (key.startsWith('f_')) {
+        next[key] = value;
+      }
+    });
+    return next;
+  });
+
+  const [draftFieldFilters, setDraftFieldFilters] = useState<Record<string, string>>(fieldFilters);
 
   const [customFilters, setCustomFilters] = useState<Record<string, string>>(() => {
     const next: Record<string, string> = {};
@@ -189,6 +204,7 @@ export default function DealsPage() {
     });
     return next;
   });
+  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string>>(customFilters);
   const { data: pipelines, isLoading: pipelinesLoading } = usePipelines();
 
   const { data: customFields } = useQuery<CustomFieldDefinition[]>({
@@ -206,11 +222,15 @@ export default function DealsPage() {
   const { data: dealsData, isLoading: dealsLoading } = useDeals({
     pipeline_id: pipelineId || undefined,
     search: search || undefined,
-    stage_id: stageFilter || undefined,
-    status: statusFilter || undefined,
     sort: sortBy,
     direction: sortDirection,
     per_page: 200,
+    ...fieldFilters,
+    ...Object.fromEntries(
+      Object.entries(customFilters)
+        .filter(([, value]) => Boolean(value))
+        .map(([key, value]) => [`cf_${key}`, value]),
+    ),
   });
 
   const moveMutation = useMutation({
@@ -247,26 +267,7 @@ export default function DealsPage() {
     [pipeline],
   );
 
-  const filteredDeals = useMemo(() => {
-    const deals = dealsData?.data ?? [];
-    return deals.filter((deal) => {
-      for (const [field, expected] of Object.entries(customFilters)) {
-        if (!expected) continue;
-        const actual = deal.custom_fields?.[field];
-        if (Array.isArray(actual)) {
-          if (!actual.map(String).some((v) => v.toLowerCase().includes(expected.toLowerCase()))) {
-            return false;
-          }
-        } else if (typeof actual === 'boolean') {
-          const boolText = actual ? 'yes' : 'no';
-          if (!boolText.includes(expected.toLowerCase())) return false;
-        } else if (!String(actual ?? '').toLowerCase().includes(expected.toLowerCase())) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [dealsData?.data, customFilters]);
+  const filteredDeals = useMemo(() => dealsData?.data ?? [], [dealsData?.data]);
 
   const filteredDealsByStage = useMemo(() => {
     const map = new Map<string, Deal[]>();
@@ -285,25 +286,30 @@ export default function DealsPage() {
     const next = new URLSearchParams();
     if (view) next.set('view', view);
     if (search) next.set('search', search);
-    if (statusFilter) next.set('status', statusFilter);
-    if (stageFilter) next.set('stage_id', stageFilter);
     if (sortBy) next.set('sort', sortBy);
     if (sortDirection) next.set('direction', sortDirection);
     if (pipelineId) next.set('pipeline_id', pipelineId);
+    Object.entries(fieldFilters).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+    });
     Object.entries(customFilters).forEach(([key, value]) => {
       if (value) next.set(`cf_${key}`, value);
     });
     setSearchParams(next, { replace: true });
-  }, [view, search, statusFilter, stageFilter, sortBy, sortDirection, pipelineId, customFilters, setSearchParams]);
+  }, [view, search, sortBy, sortDirection, pipelineId, fieldFilters, customFilters, setSearchParams]);
 
   const resetFilters = () => {
     setSearch('');
-    setStatusFilter('');
-    setStageFilter('');
     setSortBy('created_at');
     setSortDirection('desc');
+    setFieldFilters({});
     setCustomFilters({});
+    setDraftFieldFilters({});
+    setDraftCustomFilters({});
   };
+
+  const activeFilterCount = Object.values(fieldFilters).filter(Boolean).length
+    + Object.values(customFilters).filter(Boolean).length;
 
   const isLoading = pipelinesLoading || dealsLoading;
 
@@ -351,32 +357,17 @@ export default function DealsPage() {
             onChange={(e) => setSearch(e.target.value)}
             sx={{ minWidth: 220 }}
           />
-          <TextField
-            select
-            size="small"
-            label="Status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            sx={{ minWidth: 140 }}
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={() => {
+              setDraftFieldFilters(fieldFilters);
+              setDraftCustomFilters(customFilters);
+              setFilterOpen(true);
+            }}
           >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="open">Open</MenuItem>
-            <MenuItem value="won">Won</MenuItem>
-            <MenuItem value="lost">Lost</MenuItem>
-          </TextField>
-          <TextField
-            select
-            size="small"
-            label="Stage"
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-            sx={{ minWidth: 180 }}
-          >
-            <MenuItem value="">All</MenuItem>
-            {stages.map((s) => (
-              <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-            ))}
-          </TextField>
+            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+          </Button>
           <TextField
             select
             size="small"
@@ -407,20 +398,6 @@ export default function DealsPage() {
             Reset
           </Button>
         </Box>
-        {customFields && customFields.length > 0 && (
-          <Box display="flex" gap={1} mt={1} flexWrap="wrap">
-            {customFields.map((field) => (
-              <TextField
-                key={field.id}
-                size="small"
-                label={field.label}
-                value={customFilters[field.name] ?? ''}
-                onChange={(e) => setCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }))}
-                sx={{ minWidth: 180 }}
-              />
-            ))}
-          </Box>
-        )}
       </Paper>
 
       {isLoading ? (
@@ -538,6 +515,130 @@ export default function DealsPage() {
           </Table>
         </TableContainer>
       )}
+
+      <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Filter Deals</DialogTitle>
+        <DialogContent>
+          <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={1.5} mt={0.5}>
+            <TextField
+              size="small"
+              select
+              label="Status"
+              value={draftFieldFilters.f_status ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_status: e.target.value }))}
+            >
+              <MenuItem value="">Any</MenuItem>
+              <MenuItem value="open">Open</MenuItem>
+              <MenuItem value="won">Won</MenuItem>
+              <MenuItem value="lost">Lost</MenuItem>
+            </TextField>
+            <TextField
+              size="small"
+              select
+              label="Stage"
+              value={draftFieldFilters.f_stage_id ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_stage_id: e.target.value }))}
+            >
+              <MenuItem value="">Any</MenuItem>
+              {stages.map((s) => (
+                <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              size="small"
+              label="Title"
+              value={draftFieldFilters.f_title ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_title: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Value"
+              value={draftFieldFilters.f_value ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_value: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Currency"
+              value={draftFieldFilters.f_currency ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_currency: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Expected Close Date"
+              value={draftFieldFilters.f_expected_close_date ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_expected_close_date: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Probability"
+              value={draftFieldFilters.f_probability ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_probability: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Lost Reason"
+              value={draftFieldFilters.f_lost_reason ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_lost_reason: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Contact ID"
+              value={draftFieldFilters.f_contact_id ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_contact_id: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Company ID"
+              value={draftFieldFilters.f_company_id ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_company_id: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Assigned To User ID"
+              value={draftFieldFilters.f_assigned_to ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_assigned_to: e.target.value }))}
+            />
+            <TextField
+              size="small"
+              label="Created At"
+              value={draftFieldFilters.f_created_at ?? ''}
+              onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_created_at: e.target.value }))}
+            />
+            {customFields?.map((field) => (
+              <TextField
+                key={field.id}
+                size="small"
+                label={`${field.label} (Custom)`}
+                value={draftCustomFilters[field.name] ?? ''}
+                onChange={(e) => {
+                  setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+                }}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDraftFieldFilters({});
+              setDraftCustomFilters({});
+            }}
+          >
+            Clear Draft
+          </Button>
+          <Button onClick={() => setFilterOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setFieldFilters(draftFieldFilters);
+              setCustomFilters(draftCustomFilters);
+              setFilterOpen(false);
+            }}
+          >
+            Apply Filters
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );
