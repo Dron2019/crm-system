@@ -64,8 +64,9 @@ return new class extends Migration
             $table->string('role', 50)->default('member');
             $table->string('token', 64)->unique();
             $table->uuid('invited_by');
-            $table->timestamp('accepted_at')->nullable();
-            $table->timestamp('expires_at');
+            // DATETIME avoids strict TIMESTAMP default constraints on some MySQL setups.
+            $table->dateTime('accepted_at')->nullable();
+            $table->dateTime('expires_at');
             $table->timestamp('created_at')->useCurrent();
 
             $table->foreign('team_id')->references('id')->on('teams')->cascadeOnDelete();

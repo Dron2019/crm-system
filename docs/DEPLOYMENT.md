@@ -1,6 +1,6 @@
 # CRM System — Server Deployment Guide (Without Docker)
 
-Single subdomain deployment on a Linux server with Nginx, PHP-FPM, MySQL, and Redis.
+Single subdomain deployment on a Linux server with Apache, PHP-FPM, MySQL, and Redis.
 
 **Target URL:** `https://crm.yourdomain.com`
 **Backend API:** `https://crm.yourdomain.com/api/v1/*`
@@ -16,7 +16,7 @@ Single subdomain deployment on a Linux server with Nginx, PHP-FPM, MySQL, and Re
 | PHP | 8.3+ | Laravel backend |
 | MySQL | 8.0+ | Database |
 | Redis | 7+ | Cache, sessions, queues |
-| Nginx | 1.24+ | Web server |
+| Apache | 2.4+ | Web server |
 | Node.js | 18.x+ | Frontend build (build-time only) |
 | Composer | 2.7+ | PHP dependency manager |
 | Supervisor | 4+ | Queue worker process manager |
@@ -45,7 +45,7 @@ sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update
 
 # Install all dependencies
-sudo apt install -y nginx mysql-server redis-server supervisor curl git unzip \
+sudo apt install -y apache2 mysql-server redis-server supervisor curl git unzip \
   php8.3-fpm php8.3-mysql php8.3-redis php8.3-xml php8.3-curl \
   php8.3-mbstring php8.3-zip php8.3-bcmath php8.3-intl php8.3-gd \
   php8.3-tokenizer php8.3-fileinfo php8.3-opcache
@@ -226,98 +226,84 @@ npm ci
 npm run build
 ```
 
-The built frontend will be served by Nginx as static files.
+The built frontend will be served by Apache as static files.
 
 ---
 
-## 7. Nginx Configuration
+## 7. Apache Configuration
 
-Create `/etc/nginx/sites-available/crm`:
+Enable required Apache modules:
 
-```nginx
-server {
-    listen 80;
-    server_name crm.yourdomain.com;
-    return 301 https://$host$request_uri;
-}
+```bash
+sudo a2enmod rewrite headers proxy_fcgi setenvif expires ssl
+```
 
-server {
-    listen 443 ssl http2;
-    server_name crm.yourdomain.com;
+Create `/etc/apache2/sites-available/crm.conf`:
+
+```apache
+<VirtualHost *:80>
+    ServerName crm.yourdomain.com
+    Redirect permanent / https://crm.yourdomain.com/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName crm.yourdomain.com
 
     # SSL (managed by Certbot — see step 8)
-    ssl_certificate     /etc/letsencrypt/live/crm.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/crm.yourdomain.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/crm.yourdomain.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/crm.yourdomain.com/privkey.pem
+    Include /etc/letsencrypt/options-ssl-apache.conf
+
+    # Frontend SPA
+    DocumentRoot /var/www/crm/frontend/dist
+    <Directory /var/www/crm/frontend/dist>
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    # Laravel API and Sanctum endpoints
+    Alias /api /var/www/crm/backend/public
+    Alias /sanctum /var/www/crm/backend/public
+    <Directory /var/www/crm/backend/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # PHP-FPM for Laravel public/index.php
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:/run/php/php8.3-fpm.sock|fcgi://localhost/"
+    </FilesMatch>
+
+    # SPA fallback for frontend routes only (exclude API/Sanctum)
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/(api|sanctum) [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ /index.html [L]
 
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    # --- API: Laravel backend ---
-    location /api {
-        alias /var/www/crm/backend/public;
-        try_files $uri $uri/ @laravel;
-
-        location ~ \.php$ {
-            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-            fastcgi_param SCRIPT_FILENAME /var/www/crm/backend/public/index.php;
-            include fastcgi_params;
-        }
-    }
-
-    # Sanctum CSRF cookie endpoint
-    location /sanctum {
-        try_files $uri @laravel;
-    }
-
-    # Laravel fallback for /api and /sanctum routes
-    location @laravel {
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME /var/www/crm/backend/public/index.php;
-        include fastcgi_params;
-        fastcgi_param REQUEST_URI $request_uri;
-    }
-
-    # --- Frontend: React SPA (static files) ---
-    root /var/www/crm/frontend/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
     # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
 
-    # Deny dotfiles
-    location ~ /\. {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
-
-    client_max_body_size 20M;
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
-    gzip_min_length 256;
-}
+    ErrorLog ${APACHE_LOG_DIR}/crm-error.log
+    CustomLog ${APACHE_LOG_DIR}/crm-access.log combined
+</VirtualHost>
 ```
 
 Enable the site:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/crm /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
+sudo a2ensite crm.conf
+sudo a2dissite 000-default.conf
+sudo apache2ctl configtest
+sudo systemctl reload apache2
 ```
 
 ---
@@ -325,11 +311,11 @@ sudo systemctl reload nginx
 ## 8. SSL Certificate (Let's Encrypt)
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
+sudo apt install -y certbot python3-certbot-apache
 
-# Get certificate (run BEFORE enabling SSL in nginx config,
+# Get certificate (run BEFORE enabling SSL in apache config,
 # or temporarily use the HTTP-only block)
-sudo certbot --nginx -d crm.yourdomain.com
+sudo certbot --apache -d crm.yourdomain.com
 
 # Auto-renewal is set up automatically. Verify:
 sudo certbot renew --dry-run
@@ -456,7 +442,7 @@ Run deployments with: `sudo -u crm /var/www/crm/deploy.sh`
 
 ```bash
 sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
+sudo ufw allow 'Apache Full'
 sudo ufw enable
 ```
 
@@ -468,8 +454,8 @@ sudo ufw enable
 |-----|----------|
 | Laravel app | `/var/www/crm/backend/storage/logs/laravel.log` |
 | Queue worker | `/var/www/crm/backend/storage/logs/worker.log` |
-| Nginx access | `/var/log/nginx/access.log` |
-| Nginx error | `/var/log/nginx/error.log` |
+| Apache access | `/var/log/apache2/access.log` |
+| Apache error | `/var/log/apache2/error.log` |
 | PHP-FPM | `/var/log/php8.3-fpm.log` |
 | MySQL | `/var/log/mysql/error.log` |
 
@@ -505,8 +491,8 @@ redis-cli ping   # should return PONG
 # PHP-FPM
 sudo systemctl status php8.3-fpm
 
-# Nginx
-sudo nginx -t && sudo systemctl status nginx
+# Apache
+sudo apache2ctl configtest && sudo systemctl status apache2
 
 # Laravel
 cd /var/www/crm/backend
@@ -532,7 +518,7 @@ curl -I https://crm.yourdomain.com  # should return 200
 | 502 Bad Gateway | Check `php8.3-fpm` is running: `sudo systemctl restart php8.3-fpm` |
 | 403 Forbidden | Check ownership: `sudo chown -R crm:www-data /var/www/crm` |
 | CSRF token mismatch | Verify `SESSION_DOMAIN` and `SANCTUM_STATEFUL_DOMAINS` match your domain |
-| API returns HTML | Ensure `/api` location block is correctly proxying to PHP-FPM |
+| API returns HTML | Ensure Apache `Alias /api` and Laravel public `.htaccess` rewrite are active |
 | Queue jobs not running | Check supervisor: `sudo supervisorctl status` |
 | Slow responses | Enable OPcache and verify `config:cache` ran |
  

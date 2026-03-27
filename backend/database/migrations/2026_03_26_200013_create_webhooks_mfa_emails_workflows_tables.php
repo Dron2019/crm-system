@@ -33,7 +33,7 @@ return new class extends Migration
             $table->text('response_body')->nullable();
             $table->unsignedInteger('duration_ms')->nullable();
             $table->string('status', 20)->default('pending'); // pending, success, failed
-            $table->timestamp('created_at');
+            $table->timestamp('created_at')->useCurrent();
 
             $table->foreign('webhook_id')->references('id')->on('webhooks')->cascadeOnDelete();
         });

@@ -16,6 +16,12 @@ class InvalidateCache
 
         $entity = strtolower(class_basename($event->model));
 
+        // Some stores (file/database) do not support tags; fallback to full flush.
+        if (!method_exists(Cache::getStore(), 'tags')) {
+            Cache::flush();
+            return;
+        }
+
         // Flush entity-specific caches using tags
         Cache::tags(["team:{$teamId}", "{$entity}s"])->flush();
 
