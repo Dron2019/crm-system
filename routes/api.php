@@ -57,15 +57,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('search', SearchController::class);
 
         // Contacts
+        Route::post('contacts/import', [ContactImportExportController::class, 'import']);
+        Route::get('contacts/import-template', [ContactImportExportController::class, 'template']);
+        Route::post('contacts/export', [ContactImportExportController::class, 'export']);
         Route::apiResource('contacts', ContactController::class);
         Route::get('contacts/{contact}/activities', [ContactNestedController::class, 'activities']);
         Route::get('contacts/{contact}/deals', [ContactNestedController::class, 'deals']);
         Route::get('contacts/{contact}/notes', [ContactNestedController::class, 'notes']);
         Route::get('contacts/{contact}/timeline', [ContactNestedController::class, 'timeline']);
         Route::post('contacts/{contact}/restore', [ContactNestedController::class, 'restore'])->withTrashed();
-        Route::post('contacts/import', [ContactImportExportController::class, 'import']);
-        Route::get('contacts/import-template', [ContactImportExportController::class, 'template']);
-        Route::post('contacts/export', [ContactImportExportController::class, 'export']);
 
         // Companies
         Route::apiResource('companies', CompanyController::class);

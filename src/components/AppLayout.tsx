@@ -50,7 +50,6 @@ const navItems = [
   { label: 'Activities', icon: <EventNoteIcon />, path: '/activities' },
   { label: 'Calendar', icon: <CalendarTodayIcon />, path: '/calendar' },
   { label: 'Emails', icon: <EmailIcon />, path: '/emails' },
-  { label: 'Pipelines', icon: <ViewKanbanIcon />, path: '/pipelines' },
   { label: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
   { label: 'Team', icon: <GroupIcon />, path: '/team' },
   { label: 'Workflows', icon: <AutoAwesomeIcon />, path: '/workflows' },
