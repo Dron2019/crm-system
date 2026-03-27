@@ -102,9 +102,9 @@ export function buildTheme(mode: PaletteMode) {
             { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-Regular.ttf") format("truetype")', fontWeight: 400, fontStyle: 'normal', fontDisplay: 'swap' },
             { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-Medium.ttf") format("truetype")', fontWeight: 500, fontStyle: 'normal', fontDisplay: 'swap' },
             { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-SemiBold.ttf") format("truetype")', fontWeight: 600, fontStyle: 'normal', fontDisplay: 'swap' },
-            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-Bold.ttf") format("truetype")', fontWeight: 700, fontStyle: 'normal', fontDisplay: 'swap' },
-            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-ExtraBold.ttf") format("truetype")', fontWeight: 800, fontStyle: 'normal', fontDisplay: 'swap' },
-            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-Black.ttf") format("truetype")', fontWeight: 900, fontStyle: 'normal', fontDisplay: 'swap' },
+            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-SemiBold.ttf") format("truetype")', fontWeight: 700, fontStyle: 'normal', fontDisplay: 'swap' },
+            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-SemiBold.ttf") format("truetype")', fontWeight: 800, fontStyle: 'normal', fontDisplay: 'swap' },
+            { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-SemiBold.ttf") format("truetype")', fontWeight: 900, fontStyle: 'normal', fontDisplay: 'swap' },
           ],
           html: {
             fontSynthesis: 'none',
