@@ -22,7 +22,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import PeopleIcon from '@mui/icons-material/People';
 import BusinessIcon from '@mui/icons-material/Business';
 import HandshakeIcon from '@mui/icons-material/Handshake';
-import ViewKanbanIcon from '@mui/icons-material/ViewKanban';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import SettingsIcon from '@mui/icons-material/Settings';
