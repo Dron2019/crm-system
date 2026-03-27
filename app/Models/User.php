@@ -35,6 +35,7 @@ class User extends Authenticatable
         'deactivation_reason',
         'deactivated_by',
         'deactivated_at',
+        'is_system_admin',
     ];
 
     protected $hidden = [
@@ -56,6 +57,7 @@ class User extends Authenticatable
             'mfa_confirmed_at' => 'datetime',
             'is_active' => 'boolean',
             'deactivated_at' => 'datetime',
+            'is_system_admin' => 'boolean',
         ];
     }
 

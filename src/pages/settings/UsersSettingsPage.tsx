@@ -23,6 +23,7 @@ import {
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
@@ -32,6 +33,7 @@ interface SystemUser {
   name: string;
   email: string;
   is_active: boolean;
+  is_system_admin: boolean;
   deactivated_at: string | null;
   deactivation_reason: string | null;
   created_at: string;
@@ -87,6 +89,16 @@ export default function UsersSettingsPage() {
       addToast('Password reset successfully', 'success');
     },
     onError: () => addToast('Failed to reset password', 'error'),
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, isSystemAdmin }: { userId: string; isSystemAdmin: boolean }) =>
+      api.put(`/users/${userId}/role`, { is_system_admin: isSystemAdmin }),
+    onSuccess: () => {
+      addToast('User role updated successfully', 'success');
+      queryClient.invalidateQueries({ queryKey: ['system-users'] });
+    },
+    onError: () => addToast('Failed to update user role', 'error'),
   });
 
   if (isLoading) {
@@ -181,6 +193,21 @@ export default function UsersSettingsPage() {
                       </IconButton>
                     </Tooltip>
                   )}
+
+                  {/* Role toggle */}
+                  <Tooltip title={user.is_system_admin ? "System Admin" : "Regular User"}>
+                    <IconButton
+                      size="small"
+                      color={user.is_system_admin ? "warning" : "default"}
+                      onClick={() => updateRoleMutation.mutate({ 
+                        userId: user.id, 
+        isSystemAdmin: !user.is_system_admin 
+                      })}
+                      disabled={updateRoleMutation.isPending}
+                    >
+                      <AdminPanelSettingsIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}

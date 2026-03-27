@@ -39,6 +39,7 @@ class UserManagementController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_active' => $user->is_active,
+                'is_system_admin' => $user->is_system_admin,
                 'deactivated_at' => $user->deactivated_at,
                 'deactivation_reason' => $user->deactivation_reason,
                 'created_at' => $user->created_at,
@@ -115,6 +116,33 @@ class UserManagementController extends Controller
             'data' => [
                 'id' => $user->id,
                 'is_active' => $user->is_active,
+            ],
+        ]);
+    }
+
+    public function updateRole(Request $request, User $user): JsonResponse
+    {
+        if (!$this->isAdmin($request)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'Cannot change your own system role.'], 422);
+        }
+
+        $validated = $request->validate([
+            'is_system_admin' => 'required|boolean',
+        ]);
+
+        $user->update([
+            'is_system_admin' => $validated['is_system_admin'],
+        ]);
+
+        return response()->json([
+            'message' => 'User role updated successfully',
+            'data' => [
+                'id' => $user->id,
+                'is_system_admin' => $user->is_system_admin,
             ],
         ]);
     }

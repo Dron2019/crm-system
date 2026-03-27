@@ -140,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
         Route::post('users/{user}/deactivate', [UserManagementController::class, 'deactivate']);
         Route::post('users/{user}/activate', [UserManagementController::class, 'activate']);
+        Route::put('users/{user}/role', [UserManagementController::class, 'updateRole']);
 
         // Attachments
         Route::get('attachments', [AttachmentController::class, 'index']);
