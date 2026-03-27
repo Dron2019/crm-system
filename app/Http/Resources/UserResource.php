@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'current_team_role' => $this->roleInCurrentTeam(),
             'current_team' => new TeamResource($this->whenLoaded('currentTeam')),
             'teams' => TeamResource::collection($this->whenLoaded('teams')),
+            'is_system_admin' => (bool) $this->is_system_admin,
             'email_verified_at' => $this->email_verified_at,
             'last_login_at' => $this->last_login_at,
             'created_at' => $this->created_at,

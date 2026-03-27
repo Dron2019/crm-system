@@ -117,6 +117,11 @@ class User extends Authenticatable
 
     public function roleInCurrentTeam(): ?string
     {
+        // System admins without a team still have elevated access
+        if ($this->is_system_admin && !$this->current_team_id) {
+            return 'admin';
+        }
+
         $team = $this->teams()
             ->where('teams.id', $this->current_team_id)
             ->first();

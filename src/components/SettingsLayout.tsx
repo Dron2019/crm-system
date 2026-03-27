@@ -19,9 +19,12 @@ import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstruct
 import PaymentIcon from '@mui/icons-material/Payment';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { useAuthStore } from '@/stores/authStore';
 
-function isAdminRole(role: string | null | undefined): boolean {
+function isAdminRole(user: any): boolean {
+  if (user?.is_system_admin) return true;
+  const role = user?.current_team_role;
   return role === 'owner' || role === 'admin';
 }
 
@@ -39,10 +42,11 @@ export default function SettingsLayout() {
     { label: 'Integrations', icon: <IntegrationInstructionsIcon />, path: '/settings/integrations' },
     { label: 'Webhooks', icon: <WebhookIcon />, path: '/settings/webhooks' },
     { label: 'Billing', icon: <PaymentIcon />, path: '/settings/billing' },
-    ...(isAdminRole(user?.current_team_role)
+    ...(isAdminRole(user)
       ? [
           { label: 'Roles', icon: <AdminPanelSettingsIcon />, path: '/settings/roles' },
           { label: 'Users', icon: <GroupIcon />, path: '/settings/users' },
+          { label: 'Teams', icon: <GroupsIcon />, path: '/settings/teams' },
           { label: 'Imports', icon: <CloudUploadIcon />, path: '/settings/imports' },
         ]
       : []),

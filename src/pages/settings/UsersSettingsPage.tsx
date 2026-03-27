@@ -28,6 +28,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 
+interface UserTeam {
+  id: string;
+  name: string;
+  role: string;
+}
+
 interface SystemUser {
   id: string;
   name: string;
@@ -37,6 +43,7 @@ interface SystemUser {
   deactivated_at: string | null;
   deactivation_reason: string | null;
   created_at: string;
+  teams: UserTeam[];
 }
 
 interface UsersResponse {
@@ -121,6 +128,7 @@ export default function UsersSettingsPage() {
             <TableRow sx={{ bgcolor: 'action.hover' }}>
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
+              <TableCell>Teams & Roles</TableCell>
               <TableCell align="center">Status</TableCell>
               <TableCell align="center">Created</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -143,6 +151,29 @@ export default function UsersSettingsPage() {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">{user.email}</Typography>
+                </TableCell>
+                <TableCell>
+                  <Box display="flex" flexWrap="wrap" gap={0.5}>
+                    {(user.teams ?? []).length === 0 ? (
+                      <Typography variant="caption" color="text.disabled">No teams</Typography>
+                    ) : (
+                      user.teams.map((team) => (
+                        <Tooltip key={team.id} title={team.name}>
+                          <Chip
+                            label={`${team.name.length > 12 ? team.name.slice(0, 12) + '…' : team.name} · ${team.role}`}
+                            size="small"
+                            color={
+                              team.role === 'owner' ? 'error' :
+                              team.role === 'admin' ? 'warning' :
+                              'default'
+                            }
+                            variant="outlined"
+                            sx={{ fontSize: 11 }}
+                          />
+                        </Tooltip>
+                      ))
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="center">
                   {user.is_active ? (

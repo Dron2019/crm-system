@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,9 +15,15 @@ class UserManagementController extends Controller
     private function isAdmin(Request $request): bool
     {
         $user = $request->user();
+
+        // System admins always have access
+        if ($user->is_system_admin) {
+            return true;
+        }
+
         $team = $user->currentTeam;
 
-        // Owner has access
+        // Team owner has access
         if ($team && $team->owner_id === $user->id) {
             return true;
         }
@@ -32,7 +39,8 @@ class UserManagementController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $users = User::orderBy('created_at', 'desc')
+        $users = User::with('teams')
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(fn (User $user) => [
                 'id' => $user->id,
@@ -43,6 +51,11 @@ class UserManagementController extends Controller
                 'deactivated_at' => $user->deactivated_at,
                 'deactivation_reason' => $user->deactivation_reason,
                 'created_at' => $user->created_at,
+                'teams' => $user->teams->map(fn (Team $team) => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                    'role' => $team->owner_id === $user->id ? 'owner' : ($team->pivot->role ?? 'member'),
+                ]),
             ]);
 
         return response()->json([
@@ -145,5 +158,39 @@ class UserManagementController extends Controller
                 'is_system_admin' => $user->is_system_admin,
             ],
         ]);
+    }
+
+    public function teams(Request $request): JsonResponse
+    {
+        if (!$this->isAdmin($request)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $teams = Team::with(['owner', 'members'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn (Team $team) => [
+                'id' => $team->id,
+                'name' => $team->name,
+                'slug' => $team->slug,
+                'owner' => $team->owner ? [
+                    'id' => $team->owner->id,
+                    'name' => $team->owner->name,
+                    'email' => $team->owner->email,
+                ] : null,
+                'members_count' => $team->members->count(),
+                'members' => $team->members->map(fn (User $member) => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'is_active' => $member->is_active,
+                    'role' => $team->owner_id === $member->id
+                        ? 'owner'
+                        : ($member->pivot->role ?? 'member'),
+                ]),
+                'created_at' => $team->created_at,
+            ]);
+
+        return response()->json(['data' => $teams]);
     }
 }

@@ -40,6 +40,9 @@ class EnsureTeamContext
             if ($firstTeam) {
                 $user->update(['current_team_id' => $firstTeam->id]);
                 $user->setRelation('currentTeam', $firstTeam);
+            } elseif ($user->is_system_admin) {
+                // System admins can operate without a team
+                return $next($request);
             } else {
                 return response()->json([
                     'error' => [

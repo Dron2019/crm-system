@@ -7,6 +7,7 @@ export interface User {
   locale: string;
   current_team_id: string;
   current_team_role?: string | null;
+  is_system_admin?: boolean;
   current_team?: Team;
   teams?: Team[];
   email_verified_at: string | null;
