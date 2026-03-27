@@ -49,9 +49,14 @@ class TeamMemberController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        $userRole = $request->user()->roleInCurrentTeam();
+        $isOwner = $userRole === 'owner' || ($team && $team->owner_id === $request->user()->id);
+        $isAdmin = $userRole === 'admin';
+
         $members = $team->members()
             ->withPivot('role', 'custom_role_id')
-            ->when(!$this->isAdminOrOwner($request), fn ($q) => $q->where('users.id', $request->user()->id))
+            // Only owners see everyone OR owners see all other owners; admins see everyone too; others see only themselves
+            ->when(!$isOwner && !$isAdmin, fn ($q) => $q->where('users.id', $request->user()->id))
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => [
@@ -91,30 +96,27 @@ class TeamMemberController extends Controller
             }
         }
 
-        // Ensure current user (if admin) is present and has correct role
-        if ($this->isAdminOrOwner($request)) {
-            $currentUserId = $request->user()->id;
-            $currentMember = $members->firstWhere('id', $currentUserId);
+        // Ensure current user (if owner/admin) is present with correct role
+        if (($isOwner || $isAdmin) && !$members->contains('id', $request->user()->id)) {
+            $currentUser = $request->user();
+            $roleToAssign = $isOwner ? 'owner' : 'admin';
             
-            if (!$currentMember) {
-                // Current user missing from pivot - add them with admin role
-                $currentUser = $request->user();
-                $team->members()->syncWithoutDetaching([$currentUserId => ['role' => 'admin']]);
-                
-                $members->push([
-                    'id' => $currentUser->id,
-                    'name' => $currentUser->name,
-                    'email' => $currentUser->email,
-                    'avatar_url' => $currentUser->avatar_url,
-                    'role' => 'admin',
-                    'custom_role_id' => null,
-                    'email_verified_at' => $currentUser->email_verified_at,
-                    'is_active' => $currentUser->is_active,
-                    'deactivated_at' => $currentUser->deactivated_at,
-                    'deactivation_reason' => $currentUser->deactivation_reason,
-                    'last_login_at' => $currentUser->last_login_at,
-                ]);
-            }
+            // Add current user to pivot with correct role
+            $team->members()->syncWithoutDetaching([$request->user()->id => ['role' => $roleToAssign]]);
+            
+            $members->push([
+                'id' => $currentUser->id,
+                'name' => $currentUser->name,
+                'email' => $currentUser->email,
+                'avatar_url' => $currentUser->avatar_url,
+                'role' => $roleToAssign,
+                'custom_role_id' => null,
+                'email_verified_at' => $currentUser->email_verified_at,
+                'is_active' => $currentUser->is_active,
+                'deactivated_at' => $currentUser->deactivated_at,
+                'deactivation_reason' => $currentUser->deactivation_reason,
+                'last_login_at' => $currentUser->last_login_at,
+            ]);
         }
 
         return response()->json([
