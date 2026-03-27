@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Workflow;
+use App\Models\EmailTemplate;
 use App\Models\WorkflowLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class WorkflowEngine
 {
@@ -13,7 +15,7 @@ class WorkflowEngine
     {
         $workflows = Workflow::where('team_id', $entity->team_id ?? null)
             ->where('is_active', true)
-            ->where('trigger_type', $eventType)
+            ->whereIn('trigger_type', $this->eventTypeAliases($eventType))
             ->with('actions')
             ->get();
 
@@ -24,6 +26,30 @@ class WorkflowEngine
 
             $this->executeWorkflow($workflow, $entity, $context);
         }
+    }
+
+    /**
+     * Support both current and legacy trigger naming formats.
+     */
+    protected function eventTypeAliases(string $eventType): array
+    {
+        $aliases = [
+            $eventType,
+            str_replace('.', '_', $eventType),
+            str_replace('.', '-', $eventType),
+        ];
+
+        if (str_contains($eventType, '_')) {
+            $aliases[] = str_replace('_', '.', $eventType);
+            $aliases[] = str_replace('_', '-', $eventType);
+        }
+
+        if (str_contains($eventType, '-')) {
+            $aliases[] = str_replace('-', '.', $eventType);
+            $aliases[] = str_replace('-', '_', $eventType);
+        }
+
+        return array_values(array_unique($aliases));
     }
 
     protected function evaluateConditions(Workflow $workflow, Model $entity, array $context): bool
@@ -111,7 +137,7 @@ class WorkflowEngine
             'update_field' => $this->actionUpdateField($config, $entity),
             'create_activity' => $this->actionCreateActivity($config, $entity),
             'send_notification' => $this->actionSendNotification($config, $entity),
-            'send_email' => $this->actionSendEmail($config, $entity),
+            'send_email' => $this->actionSendEmail($config, $entity, $context),
             'webhook' => $this->actionWebhook($config, $entity),
             default => null,
         };
@@ -152,12 +178,55 @@ class WorkflowEngine
         return ['message' => $message];
     }
 
-    protected function actionSendEmail(array $config, Model $entity): array
+    protected function actionSendEmail(array $config, Model $entity, array $context): array
     {
-        // Would dispatch email via template or direct content
-        Log::info('Workflow email action', ['to' => $config['to'] ?? 'N/A', 'entity' => $entity->id]);
+        $toRaw = $this->interpolateTemplate((string) ($config['to'] ?? ''), $entity, $context);
+        $to = trim($toRaw);
 
-        return ['to' => $config['to'] ?? null, 'template' => $config['template_id'] ?? null];
+        if ($to === '' && isset($entity->email) && is_string($entity->email)) {
+            $to = trim($entity->email);
+        }
+
+        if ($to === '') {
+            throw new \RuntimeException('Workflow send_email action requires a recipient email.');
+        }
+
+        $subject = $this->interpolateTemplate((string) ($config['subject'] ?? 'Workflow Notification'), $entity, $context);
+        $body = $this->interpolateTemplate((string) ($config['body'] ?? ''), $entity, $context);
+
+        if (!empty($config['template_id'])) {
+            $template = EmailTemplate::find($config['template_id']);
+            if ($template) {
+                $subject = $this->interpolateTemplate($template->subject, $entity, $context);
+                $body = $this->interpolateTemplate($template->body, $entity, $context);
+            }
+        }
+
+        Mail::html(nl2br(e($body)), function ($message) use ($to, $subject) {
+            $message->to($to)->subject($subject);
+        });
+
+        return ['to' => $to, 'subject' => $subject, 'sent' => true];
+    }
+
+    protected function interpolateTemplate(string $template, Model $entity, array $context): string
+    {
+        if ($template === '') {
+            return '';
+        }
+
+        $entityArray = $entity->toArray();
+
+        return (string) preg_replace_callback('/\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}/', function ($matches) use ($entityArray, $context) {
+            $path = $matches[1];
+            $value = data_get($entityArray, $path);
+
+            if ($value === null) {
+                $value = data_get($context, $path);
+            }
+
+            return is_scalar($value) ? (string) $value : '';
+        }, $template);
     }
 
     protected function actionWebhook(array $config, Model $entity): array

@@ -1,9 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
+  Alert,
   TextField,
   Button,
   MenuItem,
@@ -24,7 +26,7 @@ import CustomFieldRenderer, { type CustomFieldDefinition } from '@/components/Cu
 
 const dealSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  value: z.string().min(1, 'Value is required'),
+  value: z.coerce.number().min(0, 'Value is required'),
   currency: z.string().default('USD'),
   pipeline_id: z.string().min(1, 'Pipeline is required'),
   stage_id: z.string().min(1, 'Stage is required'),
@@ -34,7 +36,10 @@ const dealSchema = z.object({
   probability: z.coerce.number().min(0).max(100).default(0),
   expected_close_date: z.string().optional().or(z.literal('')),
   status: z.string().default('open'),
-  custom_fields: z.record(z.any()).optional(),
+  custom_fields: z.preprocess(
+    (value) => (Array.isArray(value) ? {} : value),
+    z.record(z.any()).optional()
+  ),
 });
 
 type DealFormData = z.infer<typeof dealSchema>;
@@ -66,23 +71,10 @@ export default function DealFormPage() {
   const defaultStageId = pipelines?.[0]?.stages?.[0]?.id ?? '';
   const teamMembers = teamMembersData?.data ?? [];
 
-  const { control, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<DealFormData>({
+  const { control, handleSubmit, watch, reset, setValue, formState: { errors, isSubmitting } } = useForm<DealFormData>({
     resolver: zodResolver(dealSchema),
-    values: isEdit && deal ? {
-      title: deal.title ?? '',
-      value: deal.value ?? '',
-      currency: deal.currency ?? 'USD',
-      pipeline_id: deal.pipeline?.id ?? defaultPipelineId,
-      stage_id: deal.stage?.id ?? defaultStageId,
-      contact_id: deal.contact?.id ?? '',
-      company_id: deal.company?.id ?? '',
-      assigned_to: deal.assigned_to?.id ?? '',
-      probability: deal.probability ?? 0,
-      expected_close_date: deal.expected_close_date?.split('T')[0] ?? '',
-      status: deal.status ?? 'open',
-      custom_fields: deal.custom_fields ?? {},
-    } : {
-      title: '', value: '', currency: 'USD',
+    defaultValues: {
+      title: '', value: 0, currency: 'USD',
       pipeline_id: defaultPipelineId,
       stage_id: defaultStageId,
       contact_id: '', company_id: '',
@@ -92,9 +84,38 @@ export default function DealFormPage() {
     },
   });
 
+  useEffect(() => {
+    if (!isEdit || !deal) return;
+
+    reset({
+      title: deal.title ?? '',
+      value: Number(deal.value ?? 0),
+      currency: deal.currency ?? 'USD',
+      pipeline_id: deal.pipeline?.id ?? defaultPipelineId,
+      stage_id: deal.stage?.id ?? defaultStageId,
+      contact_id: deal.contact?.id ?? '',
+      company_id: deal.company?.id ?? '',
+      assigned_to: deal.assigned_to?.id ?? '',
+      probability: deal.probability ?? 0,
+      expected_close_date: deal.expected_close_date?.split('T')[0] ?? '',
+      status: deal.status ?? 'open',
+      custom_fields: Array.isArray(deal.custom_fields) ? {} : (deal.custom_fields ?? {}),
+    });
+  }, [isEdit, deal, defaultPipelineId, defaultStageId, reset]);
+
+  useEffect(() => {
+    if (isEdit || !pipelines?.length) return;
+    setValue('pipeline_id', defaultPipelineId);
+    setValue('stage_id', defaultStageId);
+  }, [isEdit, pipelines, defaultPipelineId, defaultStageId, setValue]);
+
   const selectedPipelineId = watch('pipeline_id');
   const selectedPipeline = pipelines?.find((p) => p.id === selectedPipelineId);
   const stages = selectedPipeline?.stages?.slice().sort((a, b) => a.display_order - b.display_order) ?? [];
+  const formErrorMessages = Object.entries(errors).map(([key, error]) => {
+    const message = (error as { message?: string })?.message;
+    return `${key}: ${message ?? 'Invalid value'}`;
+  });
 
   const mutation = useMutation({
     mutationFn: (data: DealFormData) =>
@@ -104,6 +125,17 @@ export default function DealFormPage() {
       if (id) queryClient.invalidateQueries({ queryKey: ['deals', id] });
       addToast(isEdit ? 'Deal updated' : 'Deal created');
       navigate(isEdit ? `/deals/${id}` : '/deals');
+    },
+    onError: (error: unknown) => {
+      const err = error as any;
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        // Validation error - display field-specific errors
+        const errors = err.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        addToast((Array.isArray(firstError) ? firstError[0] : firstError) as string, 'error');
+      } else {
+        addToast('Failed to save deal. Please try again.', 'error');
+      }
     },
   });
 
@@ -118,7 +150,22 @@ export default function DealFormPage() {
       </Typography>
       <Card>
         <CardContent>
-          <Box component="form" onSubmit={handleSubmit((data) => mutation.mutateAsync(data))}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit(
+              (data: DealFormData) => mutation.mutate(data),
+              () => {
+                const firstError = formErrorMessages[0] ?? 'Please fix form validation errors before saving.';
+                addToast(firstError, 'error');
+              }
+            )}
+          >
+            {formErrorMessages.length > 0 && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {formErrorMessages.join(' | ')}
+              </Alert>
+            )}
+
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>
                 <Controller name="title" control={control} render={({ field }) => (
@@ -146,14 +193,30 @@ export default function DealFormPage() {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller name="pipeline_id" control={control} render={({ field }) => (
-                  <TextField {...field} label="Pipeline" fullWidth select required error={!!errors.pipeline_id}>
+                  <TextField
+                    {...field}
+                    label="Pipeline"
+                    fullWidth
+                    select
+                    required
+                    error={!!errors.pipeline_id}
+                    helperText={errors.pipeline_id?.message}
+                  >
                     {pipelines?.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                   </TextField>
                 )} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Controller name="stage_id" control={control} render={({ field }) => (
-                  <TextField {...field} label="Stage" fullWidth select required error={!!errors.stage_id}>
+                  <TextField
+                    {...field}
+                    label="Stage"
+                    fullWidth
+                    select
+                    required
+                    error={!!errors.stage_id}
+                    helperText={errors.stage_id?.message}
+                  >
                     {stages.map((s) => (
                       <MenuItem key={s.id} value={s.id}>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -214,7 +277,7 @@ export default function DealFormPage() {
                   <Grid container spacing={2}>
                     {customFields.map((field) => (
                       <Grid key={field.id} size={{ xs: 12, sm: 6 }}>
-                        <CustomFieldRenderer field={field} control={control} />
+                        <CustomFieldRenderer<DealFormData> field={field} control={control} />
                       </Grid>
                     ))}
                   </Grid>
@@ -223,12 +286,14 @@ export default function DealFormPage() {
             </Grid>
 
             {mutation.isError && (
-              <Typography color="error" mt={2} variant="body2">Failed to save deal. Please try again.</Typography>
+              <Typography color="error" mt={2} variant="body2">
+                Check the notification above for details.
+              </Typography>
             )}
 
             <Box display="flex" gap={2} mt={3}>
-              <Button variant="contained" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving…' : isEdit ? 'Update Deal' : 'Create Deal'}
+              <Button variant="contained" type="submit" disabled={isSubmitting || mutation.isPending}>
+                {isSubmitting || mutation.isPending ? 'Saving…' : isEdit ? 'Update Deal' : 'Create Deal'}
               </Button>
               <Button variant="outlined" onClick={() => navigate(isEdit ? `/deals/${id}` : '/deals')}>
                 Cancel

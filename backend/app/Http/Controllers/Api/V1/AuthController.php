@@ -146,9 +146,10 @@ class AuthController extends Controller
             $team->members()->attach($user->id, ['role' => $invitation->role]);
         }
 
-        // Set current team if user doesn't have one
-        if (!$user->current_team_id) {
+        // Switch context to invited team so user can immediately see that team's data.
+        if ($user->current_team_id !== $team->id) {
             $user->update(['current_team_id' => $team->id]);
+            $user->setRelation('currentTeam', $team);
         }
 
         // Mark invitation as accepted

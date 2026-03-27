@@ -522,3 +522,79 @@ curl -I https://crm.yourdomain.com  # should return 200
 | Queue jobs not running | Check supervisor: `sudo supervisorctl status` |
 | Slow responses | Enable OPcache and verify `config:cache` ran |
  
+## 16. User Management & Activation
+
+### Overview
+
+The CRM system offers two user creation workflows:
+
+1. **Self-Registration** (Public signup)  
+    - Users register directly at `/register`
+    - Account is **immediately usable** (no email verification required)
+    - `email_verified_at` remains `null`
+    - User is auto-logged in after signup
+    - Default team is auto-created for the user as **owner**
+
+2. **Team Invitation** (Admin invites)  
+    - Admin/owner invites user via **Settings → Team Members → Invite**
+    - Invitation email sent to user's email address
+    - Invited user clicks link and accepts invitation (sets name + password)
+    - Account is **immediately usable** after acceptance
+    - `email_verified_at` is set to current timestamp
+    - User is auto-logged in and added to the team with **member** role
+    - Invitation token expires after 7 days
+
+### How to Invite Users
+
+On any frontend instance with admin/owner role:
+
+1. Navigate to **Settings → Team Members**
+2. Click **"Invite Member"** button
+3. Enter the user's email address
+4. Click **"Send Invitation"**
+5. Invitation email is sent (via MAIL_* config in `.env`)
+6. User receives email with invitation link
+7. User clicks link, sets name + password, and joins team
+
+### How to Reset User Passwords
+
+Users can reset their password via:
+
+- **Forgot Password Link**: On login page at `/forgot-password`
+  - User enters email
+  - Password reset link sent (if account exists)
+  - User clicks link in email and sets new password
+
+The password reset email requires proper configuration:
+
+```bash
+# In .env on server:
+FRONTEND_URL=https://crm.yourdomain.com      # must match your domain
+MAIL_FROM_ADDRESS=noreply@yourdomain.com
+MAIL_FROM_NAME="CRM System"
+MAIL_HOST=your-mail-provider.com  # e.g., smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_ENCRYPTION=tls
+```
+
+Reset links expire after **60 minutes** by default.
+
+### User Roles & Permissions
+
+Team roles control what users can do:
+
+| Role | Can | Cannot |
+|------|-----|--------|
+| **Owner** | Create/manage team, invite members, change roles, delete team | — |
+| **Admin** | Invite members, change member roles, remove members | Delete team |
+| **Member** | View data, create/edit records, manage own settings | Manage team, invite users |
+
+### Deactivating Users
+
+Currently, users are **soft-deleted** when removed from a team. To deactivate a user:
+
+1. Navigate to **Settings → Team Members**
+2. Click the **trash icon** next to a member
+3. User is removed from team but account record remains (soft-deleted)

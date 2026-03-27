@@ -33,7 +33,10 @@ const contactSchema = z.object({
   job_title: z.string().max(255).optional().or(z.literal('')),
   source: z.string().max(100).optional().or(z.literal('')),
   status: z.enum(['active', 'inactive', 'lead', 'customer']),
-  custom_fields: z.record(z.any()).optional(),
+  custom_fields: z.preprocess(
+    (value) => (Array.isArray(value) ? {} : value),
+    z.record(z.any()).optional()
+  ),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
@@ -74,7 +77,7 @@ export default function ContactFormPage() {
       job_title: existingContact.job_title ?? '',
       source: existingContact.source ?? '',
       status: (existingContact.status as ContactFormData['status']) ?? 'active',
-      custom_fields: existingContact.custom_fields ?? {},
+      custom_fields: Array.isArray(existingContact.custom_fields) ? {} : (existingContact.custom_fields ?? {}),
     } : {
       first_name: '',
       last_name: '',

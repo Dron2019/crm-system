@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Models\Invitation;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\TeamInvitationNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class TeamMemberController extends Controller
@@ -98,6 +101,23 @@ class TeamMemberController extends Controller
             'invited_by' => $request->user()->id,
             'expires_at' => now()->addDays(7),
         ]);
+
+        try {
+            Notification::route('mail', $invitation->email)
+                ->notify(new TeamInvitationNotification($invitation, $team, $request->user()));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send team invitation email', [
+                'team_id' => $team->id,
+                'email' => $invitation->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            $invitation->delete();
+
+            return response()->json([
+                'message' => 'Invitation email could not be sent. Check mail configuration.',
+            ], 500);
+        }
 
         return response()->json([
             'data' => $invitation->load('inviter'),

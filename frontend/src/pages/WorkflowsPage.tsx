@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -88,6 +88,8 @@ const workflowSchema = z.object({
 });
 
 type WorkflowFormData = z.infer<typeof workflowSchema>;
+
+const DEFAULT_ACTION: WorkflowAction = { type: 'send_notification', config: {} };
 
 // ─── Action Config Editors ────────────────────────────────────────────────────
 
@@ -275,8 +277,6 @@ function WorkflowDialog({
   const createWf = useCreateWorkflow();
   const updateWf = useUpdateWorkflow(isEdit ? editTarget.id : '');
 
-  const defaultAction: WorkflowAction = { type: 'send_notification', config: {} };
-
   const {
     control,
     register,
@@ -292,18 +292,30 @@ function WorkflowDialog({
           description: editTarget.description ?? '',
           trigger_type: editTarget.trigger_type,
           is_active: editTarget.is_active,
-          actions: editTarget.actions.length > 0 ? (editTarget.actions as WorkflowAction[]) : [defaultAction],
+          actions: editTarget.actions.length > 0 ? (editTarget.actions as WorkflowAction[]) : [DEFAULT_ACTION],
         }
       : {
           name: '',
           description: '',
           trigger_type: '',
           is_active: true,
-          actions: [defaultAction],
+          actions: [DEFAULT_ACTION],
         },
   });
 
   const { fields, append, remove, update } = useFieldArray({ control, name: 'actions' });
+
+  // Reset form when editTarget changes (fixes empty form on edit)
+  useEffect(() => {
+    if (!editTarget) return;
+    reset({
+      name: editTarget.name,
+      description: editTarget.description ?? '',
+      trigger_type: editTarget.trigger_type,
+      is_active: editTarget.is_active,
+      actions: editTarget.actions.length > 0 ? (editTarget.actions as WorkflowAction[]) : [DEFAULT_ACTION],
+    });
+  }, [editTarget, reset]);
 
   const onSubmit = async (values: WorkflowFormData) => {
     const payload = {
@@ -401,7 +413,7 @@ function WorkflowDialog({
                   size="small"
                   startIcon={<AddIcon />}
                   variant="outlined"
-                  onClick={() => append(defaultAction)}
+                  onClick={() => append({ ...DEFAULT_ACTION })}
                 >
                   Add Action
                 </Button>
