@@ -157,7 +157,7 @@ export default function CalendarPage() {
     <Box>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight={700}>Calendar</Typography>
+        <Typography variant="h5" fontWeight={500}>Calendar</Typography>
         <Box display="flex" gap={1} alignItems="center">
           <Button size="small" startIcon={<TodayIcon />} onClick={goToday}>
             Today
@@ -186,7 +186,7 @@ export default function CalendarPage() {
             {DAYS.map((day) => (
               <Grid2 key={day} size={{ xs: 12 / 7 }}>
                 <Box py={1} textAlign="center">
-                  <Typography variant="caption" fontWeight={700} color="text.secondary">
+                  <Typography variant="caption" fontWeight={500} color="text.secondary">
                     {day}
                   </Typography>
                 </Box>

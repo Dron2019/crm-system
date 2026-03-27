@@ -76,12 +76,12 @@ export function buildTheme(mode: PaletteMode) {
     typography: {
       fontFamily: '"Geist", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
 
-      // h1: { fontWeight: 700, letterSpacing: -0.5 },
-      // h2: { fontWeight: 700, letterSpacing: -0.4 },
-      // h3: { fontWeight: 600 },
-      // h4: { fontWeight: 600 },
-      // h5: { fontWeight: 600 },
-      // h6: { fontWeight: 600 },
+      h1: { fontWeight: 500, letterSpacing: -0.4 },
+      h2: { fontWeight: 500, letterSpacing: -0.3 },
+      h3: { fontWeight: 500 },
+      h4: { fontWeight: 500 },
+      h5: { fontWeight: 500 },
+      h6: { fontWeight: 500 },
 
       button: {
         fontWeight: 400,
@@ -106,6 +106,9 @@ export function buildTheme(mode: PaletteMode) {
             { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-ExtraBold.ttf") format("truetype")', fontWeight: 800, fontStyle: 'normal', fontDisplay: 'swap' },
             { fontFamily: 'Geist', src: 'url("/assets/fonts/Geist-Black.ttf") format("truetype")', fontWeight: 900, fontStyle: 'normal', fontDisplay: 'swap' },
           ],
+          html: {
+            fontSynthesis: 'none',
+          },
           body: {
             backgroundColor: isLight ? '#F6F8FC' : '#0B1220',
           },

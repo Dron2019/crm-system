@@ -161,7 +161,7 @@ export default function ActivitiesPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight={700}>Activities</Typography>
+        <Typography variant="h5" fontWeight={500}>Activities</Typography>
         <Box display="flex" gap={1}>
           <TextField
             size="small"

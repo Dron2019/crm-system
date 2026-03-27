@@ -79,7 +79,7 @@ export default function PipelinesPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight={700}>Pipelines</Typography>
+        <Typography variant="h5" fontWeight={500}>Pipelines</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
           New Pipeline
         </Button>
@@ -93,7 +93,7 @@ export default function PipelinesPage() {
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Typography variant="h6" fontWeight={700}>{pipeline.name}</Typography>
+                    <Typography variant="h6" fontWeight={500}>{pipeline.name}</Typography>
                     {pipeline.is_default && <Chip label="Default" size="small" color="primary" variant="outlined" />}
                   </Box>
                   <Box>

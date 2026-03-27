@@ -76,7 +76,7 @@ function DealCard({ deal, onClick, isDragOverlay }: { deal: Deal; onClick: () =>
         <Typography variant="body2" fontWeight={600} noWrap>
           {deal.title}
         </Typography>
-        <Typography variant="h6" fontWeight={700} color="primary" mt={0.5}>
+        <Typography variant="h6" fontWeight={500} color="primary" mt={0.5}>
           {deal.currency} {Number(deal.value).toLocaleString()}
         </Typography>
         {deal.contact && (
@@ -136,7 +136,7 @@ function KanbanColumn({ stage, deals, onDealClick }: { stage: Stage; deals: Deal
       >
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="subtitle2" fontWeight={700}>
+            <Typography variant="subtitle2" fontWeight={500}>
               {stage.name}
             </Typography>
             <Chip label={deals.length} size="small" variant="outlined" />
@@ -429,7 +429,7 @@ export default function DealsPage() {
     <Box display="flex" flexDirection="column" height="100%">
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
-        <Typography variant="h5" fontWeight={700}>Deals</Typography>
+        <Typography variant="h5" fontWeight={500}>Deals</Typography>
         <Box display="flex" gap={1} alignItems="center">
           {pipelines && pipelines.length > 1 && (
             <TextField
@@ -577,7 +577,7 @@ export default function DealsPage() {
                     <Typography variant="body2" fontWeight={600}>{deal.title}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={700} color="primary">
+                    <Typography variant="body2" fontWeight={500} color="primary">
                       {deal.currency} {Number(deal.value).toLocaleString()}
                     </Typography>
                   </TableCell>

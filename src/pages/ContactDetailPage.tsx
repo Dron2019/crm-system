@@ -105,7 +105,7 @@ export default function ContactDetailPage() {
           {contact.first_name.charAt(0)}{contact.last_name?.charAt(0) ?? ''}
         </Avatar>
         <Box flex={1}>
-          <Typography variant="h5" fontWeight={700}>{contact.full_name}</Typography>
+          <Typography variant="h5" fontWeight={500}>{contact.full_name}</Typography>
           <Typography variant="body2" color="text.secondary">{contact.job_title || 'No job title'}</Typography>
         </Box>
         <Chip
@@ -133,7 +133,7 @@ export default function ContactDetailPage() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" fontWeight={700} mb={1.25}>Contact Details</Typography>
+            <Typography variant="h6" fontWeight={500} mb={1.25}>Contact Details</Typography>
             <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={contact.email} />
             <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={contact.phone} />
             <InfoRow icon={<PhoneIcon fontSize="small" />} label="Mobile" value={contact.mobile} />
@@ -194,7 +194,7 @@ export default function ContactDetailPage() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box px={2} pt={1.5}>
-              <Typography variant="h6" fontWeight={700}>History</Typography>
+              <Typography variant="h6" fontWeight={500}>History</Typography>
             </Box>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
               <Tab label="Timeline" />

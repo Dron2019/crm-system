@@ -126,7 +126,7 @@ export default function EmailsPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight={700}>Emails</Typography>
+        <Typography variant="h5" fontWeight={500}>Emails</Typography>
         <Button variant="contained" startIcon={<EditIcon />} onClick={() => setComposeOpen(true)}>
           Compose
         </Button>

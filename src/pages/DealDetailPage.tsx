@@ -196,7 +196,7 @@ export default function DealDetailPage() {
           <ArrowBackIcon />
         </IconButton>
         <Box flex={1}>
-          <Typography variant="h5" fontWeight={700}>{deal.title}</Typography>
+          <Typography variant="h5" fontWeight={500}>{deal.title}</Typography>
           <Box display="flex" gap={1} alignItems="center" mt={0.5}>
             <Chip
               label={deal.status}
@@ -249,7 +249,7 @@ export default function DealDetailPage() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" fontWeight={700} mb={1.5}>Deal Details</Typography>
+            <Typography variant="h6" fontWeight={500} mb={1.5}>Deal Details</Typography>
             <DetailRow label="Deal title" value={deal.title} strong />
             <DetailRow label="Budget" value={`${deal.currency} ${Number(deal.value).toLocaleString()}`} strong />
             <DetailRow label="Probability" value={`${deal.probability}%`} />
@@ -311,7 +311,7 @@ export default function DealDetailPage() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box px={2} pt={1.75}>
-              <Typography variant="h6" fontWeight={700}>History</Typography>
+              <Typography variant="h6" fontWeight={500}>History</Typography>
             </Box>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
               <Tab label="Timeline" />

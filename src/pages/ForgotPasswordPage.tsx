@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
     >
       <Card sx={{ width: 400, maxWidth: '100%' }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" fontWeight={700} textAlign="center" mb={1} color="primary">
+          <Typography variant="h4" fontWeight={500} textAlign="center" mb={1} color="primary">
             CRM System
           </Typography>
           <Typography variant="body2" textAlign="center" color="text.secondary" mb={3}>

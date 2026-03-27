@@ -52,7 +52,7 @@ export default function SettingsPage() {
 
   return (
     <Box maxWidth={680}>
-      <Typography variant="h5" fontWeight={700} mb={3}>Settings</Typography>
+      <Typography variant="h5" fontWeight={500} mb={3}>Settings</Typography>
 
       {/* Profile */}
       <Card sx={{ mb: 3 }}>

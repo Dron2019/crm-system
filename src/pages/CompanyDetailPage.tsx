@@ -120,7 +120,7 @@ export default function CompanyDetailPage() {
           <BusinessIcon />
         </Avatar>
         <Box flex={1}>
-          <Typography variant="h5" fontWeight={700}>{company.name}</Typography>
+          <Typography variant="h5" fontWeight={500}>{company.name}</Typography>
           <Typography variant="body2" color="text.secondary">{company.industry}</Typography>
         </Box>
         <Button variant="contained" startIcon={<EditIcon />} onClick={() => navigate(`/companies/${id}/edit`)}>
@@ -143,7 +143,7 @@ export default function CompanyDetailPage() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" fontWeight={700} mb={1.25}>Company Details</Typography>
+            <Typography variant="h6" fontWeight={500} mb={1.25}>Company Details</Typography>
             <InfoRow icon={<LanguageIcon fontSize="small" />} label="Domain" value={company.domain} />
             <InfoRow icon={<LanguageIcon fontSize="small" />} label="Website" value={company.website} />
             <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={company.phone} />
@@ -175,7 +175,7 @@ export default function CompanyDetailPage() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box px={2} pt={1.5}>
-              <Typography variant="h6" fontWeight={700}>History</Typography>
+              <Typography variant="h6" fontWeight={500}>History</Typography>
             </Box>
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
               <Tab label="Timeline" />

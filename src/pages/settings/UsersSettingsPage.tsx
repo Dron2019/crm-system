@@ -118,7 +118,7 @@ export default function UsersSettingsPage() {
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight={700} mb={3}>
+      <Typography variant="h6" fontWeight={500} mb={3}>
         System Users
       </Typography>
 

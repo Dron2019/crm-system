@@ -274,7 +274,7 @@ export default function ContactsPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight={700}>
+        <Typography variant="h4" fontWeight={500}>
           Contacts
         </Typography>
         <Button

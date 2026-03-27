@@ -150,7 +150,7 @@ export default function TeamsSettingsPage() {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={1} mb={3}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography variant="h6" fontWeight={500}>
           All Teams
         </Typography>
         <Chip label={teams.length} size="small" color="primary" />

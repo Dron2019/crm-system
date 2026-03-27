@@ -59,7 +59,7 @@ export default function CompaniesPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight={700}>
+        <Typography variant="h4" fontWeight={500}>
           Companies
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/companies/new')}>

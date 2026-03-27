@@ -232,7 +232,7 @@ export default function ImportSettingsPage() {
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight={700} mb={2}>Imports</Typography>
+      <Typography variant="h6" fontWeight={500} mb={2}>Imports</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
         Importing contacts and deals is restricted to team owner/admin.
       </Typography>
@@ -240,7 +240,7 @@ export default function ImportSettingsPage() {
       <Box display="grid" gap={2} sx={{ gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} mb={1}>Contacts Import</Typography>
+            <Typography variant="subtitle1" fontWeight={500} mb={1}>Contacts Import</Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
               Download template and import contacts from CSV/XLSX.
             </Typography>
@@ -273,7 +273,7 @@ export default function ImportSettingsPage() {
 
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} mb={1}>Deals Import</Typography>
+            <Typography variant="subtitle1" fontWeight={500} mb={1}>Deals Import</Typography>
             <Typography variant="body2" color="text.secondary" mb={2}>
               Preview and edit import rows before committing deals.
             </Typography>

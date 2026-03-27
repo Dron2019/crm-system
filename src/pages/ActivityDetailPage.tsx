@@ -116,7 +116,7 @@ export default function ActivityDetailPage() {
                 ? <CheckCircleIcon color="success" />
                 : <RadioButtonUncheckedIcon color="action" />}
             </IconButton>
-            <Typography variant="h5" fontWeight={700} sx={{ textDecoration: activity.is_completed ? 'line-through' : 'none' }}>
+            <Typography variant="h5" fontWeight={500} sx={{ textDecoration: activity.is_completed ? 'line-through' : 'none' }}>
               {activity.title}
             </Typography>
           </Box>
@@ -219,7 +219,7 @@ export default function ActivityDetailPage() {
       <Box mt={3}>
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} mb={2}>
+            <Typography variant="subtitle1" fontWeight={500} mb={2}>
               Comments
             </Typography>
             <CommentsSection entityType="activity" entityId={id!} />

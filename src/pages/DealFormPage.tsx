@@ -145,7 +145,7 @@ export default function DealFormPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={3}>
+      <Typography variant="h5" fontWeight={500} mb={3}>
         {isEdit ? 'Edit Deal' : 'New Deal'}
       </Typography>
       <Card>
@@ -271,7 +271,7 @@ export default function DealFormPage() {
 
               {customFields && customFields.length > 0 && (
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle1" fontWeight={700} mb={1}>
+                  <Typography variant="subtitle1" fontWeight={500} mb={1}>
                     Custom Fields
                   </Typography>
                   <Grid container spacing={2}>

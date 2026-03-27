@@ -300,7 +300,7 @@ export default function RolesSettingsPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight={700}>Roles & Permissions</Typography>
+        <Typography variant="h6" fontWeight={500}>Roles & Permissions</Typography>
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
             New Role
@@ -347,7 +347,7 @@ export default function RolesSettingsPage() {
           <Paper sx={{ flex: 1, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
             <Box px={2} pt={2} pb={1} display="flex" alignItems="center" gap={1.5}>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: viewRole.color }} />
-              <Typography variant="h6" fontWeight={700} flex={1}>{viewRole.name}</Typography>
+              <Typography variant="h6" fontWeight={500} flex={1}>{viewRole.name}</Typography>
               {viewRole.is_builtin && <Chip label="Built-in" size="small" />}
               {!viewRole.is_builtin && canManage && (
                 <Box display="flex" gap={0.5}>

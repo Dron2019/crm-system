@@ -87,7 +87,7 @@ export default function CompanyFormPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={3}>
+      <Typography variant="h5" fontWeight={500} mb={3}>
         {isEdit ? 'Edit Company' : 'New Company'}
       </Typography>
       <Card>

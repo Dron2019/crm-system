@@ -30,7 +30,7 @@ export default function DashboardPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} mb={3}>
+      <Typography variant="h4" fontWeight={500} mb={3}>
         Dashboard
       </Typography>
 
@@ -54,7 +54,7 @@ export default function DashboardPage() {
                   <Typography variant="body2" color="text.secondary">
                     {stat.label}
                   </Typography>
-                  <Typography variant="h5" fontWeight={700}>
+                  <Typography variant="h5" fontWeight={500}>
                     {stat.value}
                   </Typography>
                 </Box>

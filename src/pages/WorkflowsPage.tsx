@@ -535,7 +535,7 @@ export default function WorkflowsPage() {
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" fontWeight={500}>
             Workflow Automation
           </Typography>
           <Typography variant="body2" color="text.secondary" mt={0.5}>

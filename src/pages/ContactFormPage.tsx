@@ -127,7 +127,7 @@ export default function ContactFormPage() {
         <IconButton onClick={() => navigate(isEditing ? `/contacts/${id}` : '/contacts')}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" fontWeight={500}>
           {isEditing ? 'Edit Contact' : 'New Contact'}
         </Typography>
       </Box>
@@ -241,7 +241,7 @@ export default function ContactFormPage() {
 
               {customFields && customFields.length > 0 && (
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle1" fontWeight={700} mb={1}>
+                  <Typography variant="subtitle1" fontWeight={500} mb={1}>
                     Custom Fields
                   </Typography>
                   <Grid container spacing={2}>
