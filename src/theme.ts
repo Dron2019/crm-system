@@ -76,15 +76,15 @@ export function buildTheme(mode: PaletteMode) {
     typography: {
       fontFamily: '"Geist", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
 
-      h1: { fontWeight: 700, letterSpacing: -0.5 },
-      h2: { fontWeight: 700, letterSpacing: -0.4 },
-      h3: { fontWeight: 600 },
-      h4: { fontWeight: 600 },
-      h5: { fontWeight: 600 },
-      h6: { fontWeight: 600 },
+      // h1: { fontWeight: 700, letterSpacing: -0.5 },
+      // h2: { fontWeight: 700, letterSpacing: -0.4 },
+      // h3: { fontWeight: 600 },
+      // h4: { fontWeight: 600 },
+      // h5: { fontWeight: 600 },
+      // h6: { fontWeight: 600 },
 
       button: {
-        fontWeight: 600,
+        fontWeight: 400,
       },
     },
 
