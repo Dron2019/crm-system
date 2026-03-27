@@ -69,9 +69,29 @@ class DealService
                 continue;
             }
 
+            $jsonPath = "$.{$fieldName}";
+            $options = str_contains($filterValue, '||')
+                ? array_values(array_filter(array_map('trim', explode('||', $filterValue))))
+                : [$filterValue];
+
+            if (count($options) > 1) {
+                $query->where(function ($sub) use ($jsonPath, $options) {
+                    foreach ($options as $option) {
+                        $sub->orWhereRaw(
+                            'JSON_CONTAINS(JSON_EXTRACT(custom_fields, ?), JSON_QUOTE(?))',
+                            [$jsonPath, $option]
+                        )->orWhereRaw(
+                            'LOWER(JSON_UNQUOTE(JSON_EXTRACT(custom_fields, ?))) LIKE ?',
+                            [$jsonPath, '%' . strtolower($option) . '%']
+                        );
+                    }
+                });
+                continue;
+            }
+
             $query->whereRaw(
                 'LOWER(JSON_UNQUOTE(JSON_EXTRACT(custom_fields, ?))) LIKE ?',
-                ["$.{$fieldName}", '%' . strtolower($filterValue) . '%']
+                [$jsonPath, '%' . strtolower($filterValue) . '%']
             );
         }
 

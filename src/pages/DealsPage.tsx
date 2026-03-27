@@ -8,6 +8,7 @@ import {
   CardContent,
   Avatar,
   Chip,
+  Autocomplete,
   MenuItem,
   TextField,
   ToggleButtonGroup,
@@ -195,16 +196,16 @@ export default function DealsPage() {
 
   const [draftFieldFilters, setDraftFieldFilters] = useState<Record<string, string>>(fieldFilters);
 
-  const [customFilters, setCustomFilters] = useState<Record<string, string>>(() => {
-    const next: Record<string, string> = {};
+  const [customFilters, setCustomFilters] = useState<Record<string, string | string[]>>(() => {
+    const next: Record<string, string | string[]> = {};
     searchParams.forEach((value, key) => {
       if (key.startsWith('cf_')) {
-        next[key.replace('cf_', '')] = value;
+        next[key.replace('cf_', '')] = value.includes('||') ? value.split('||').filter(Boolean) : value;
       }
     });
     return next;
   });
-  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string>>(customFilters);
+  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string | string[]>>(customFilters);
   const { data: pipelines, isLoading: pipelinesLoading } = usePipelines();
 
   const { data: customFields } = useQuery<CustomFieldDefinition[]>({
@@ -228,8 +229,8 @@ export default function DealsPage() {
     ...fieldFilters,
     ...Object.fromEntries(
       Object.entries(customFilters)
-        .filter(([, value]) => Boolean(value))
-        .map(([key, value]) => [`cf_${key}`, value]),
+        .filter(([, value]) => (Array.isArray(value) ? value.length > 0 : Boolean(value)))
+        .map(([key, value]) => [`cf_${key}`, Array.isArray(value) ? value.join('||') : value]),
     ),
   });
 
@@ -293,6 +294,10 @@ export default function DealsPage() {
       if (value) next.set(key, value);
     });
     Object.entries(customFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) next.set(`cf_${key}`, value.join('||'));
+        return;
+      }
       if (value) next.set(`cf_${key}`, value);
     });
     setSearchParams(next, { replace: true });
@@ -309,7 +314,108 @@ export default function DealsPage() {
   };
 
   const activeFilterCount = Object.values(fieldFilters).filter(Boolean).length
-    + Object.values(customFilters).filter(Boolean).length;
+    + Object.values(customFilters).filter((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v))).length;
+
+  const renderCustomFilterField = (field: CustomFieldDefinition) => {
+    const rawValue = draftCustomFilters[field.name];
+    const value = Array.isArray(rawValue) ? rawValue : (rawValue ?? '');
+
+    if (field.field_type === 'multiselect') {
+      const selected = Array.isArray(rawValue)
+        ? rawValue
+        : typeof rawValue === 'string' && rawValue
+          ? rawValue.split('||').filter(Boolean)
+          : [];
+
+      return (
+        <Autocomplete
+          key={field.id}
+          multiple
+          options={field.options ?? []}
+          value={selected}
+          onChange={(_, newValue) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: newValue }));
+          }}
+          renderTags={(selectedValues, getTagProps) =>
+            selectedValues.map((option, index) => (
+              <Chip label={option} size="small" {...getTagProps({ index })} key={`${field.id}-${option}`} />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField {...params} size="small" label={`${field.label} (Custom)`} />
+          )}
+        />
+      );
+    }
+
+    if (field.field_type === 'select') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          select
+          label={`${field.label} (Custom)`}
+          value={Array.isArray(value) ? '' : value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+        >
+          <MenuItem value="">Any</MenuItem>
+          {(field.options ?? []).map((opt) => (
+            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+          ))}
+        </TextField>
+      );
+    }
+
+    if (field.field_type === 'boolean') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          select
+          label={`${field.label} (Custom)`}
+          value={value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+        >
+          <MenuItem value="">Any</MenuItem>
+          <MenuItem value="yes">Yes</MenuItem>
+          <MenuItem value="no">No</MenuItem>
+        </TextField>
+      );
+    }
+
+    if (field.field_type === 'date') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          type="date"
+          label={`${field.label} (Custom)`}
+          value={value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+      );
+    }
+
+    return (
+      <TextField
+        key={field.id}
+        size="small"
+        type={field.field_type === 'number' || field.field_type === 'currency' ? 'number' : 'text'}
+        label={`${field.label} (Custom)`}
+        value={value}
+        onChange={(e) => {
+          setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+        }}
+      />
+    );
+  };
 
   const isLoading = pipelinesLoading || dealsLoading;
 
@@ -604,17 +710,7 @@ export default function DealsPage() {
               value={draftFieldFilters.f_created_at ?? ''}
               onChange={(e) => setDraftFieldFilters((prev) => ({ ...prev, f_created_at: e.target.value }))}
             />
-            {customFields?.map((field) => (
-              <TextField
-                key={field.id}
-                size="small"
-                label={`${field.label} (Custom)`}
-                value={draftCustomFilters[field.name] ?? ''}
-                onChange={(e) => {
-                  setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
-                }}
-              />
-            ))}
+            {customFields?.map((field) => renderCustomFilterField(field))}
           </Box>
         </DialogContent>
         <DialogActions>

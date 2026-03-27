@@ -15,6 +15,7 @@ import {
   Paper,
   Chip,
   Avatar,
+  Autocomplete,
   TablePagination,
   IconButton,
   Tooltip,
@@ -74,17 +75,17 @@ export default function ContactsPage() {
     },
   });
 
-  const [customFilters, setCustomFilters] = useState<Record<string, string>>(() => {
-    const next: Record<string, string> = {};
+  const [customFilters, setCustomFilters] = useState<Record<string, string | string[]>>(() => {
+    const next: Record<string, string | string[]> = {};
     searchParams.forEach((value, key) => {
       if (key.startsWith('cf_')) {
-        next[key.replace('cf_', '')] = value;
+        next[key.replace('cf_', '')] = value.includes('||') ? value.split('||').filter(Boolean) : value;
       }
     });
     return next;
   });
 
-  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string>>(customFilters);
+  const [draftCustomFilters, setDraftCustomFilters] = useState<Record<string, string | string[]>>(customFilters);
 
   const contactsParams = useMemo(() => {
     const params: Record<string, string | number | undefined> = {
@@ -100,6 +101,10 @@ export default function ContactsPage() {
     });
 
     Object.entries(customFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) params[`cf_${key}`] = value.join('||');
+        return;
+      }
       if (value) params[`cf_${key}`] = value;
     });
 
@@ -121,6 +126,10 @@ export default function ContactsPage() {
       if (value) next.set(key, value);
     });
     Object.entries(customFilters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) next.set(`cf_${key}`, value.join('||'));
+        return;
+      }
       if (value) next.set(`cf_${key}`, value);
     });
     setSearchParams(next, { replace: true });
@@ -138,7 +147,7 @@ export default function ContactsPage() {
   };
 
   const activeFilterCount = Object.values(fieldFilters).filter(Boolean).length
-    + Object.values(customFilters).filter(Boolean).length;
+    + Object.values(customFilters).filter((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v))).length;
 
   const filterFieldDefs = [
     { key: 'f_first_name', label: 'First Name' },
@@ -154,6 +163,107 @@ export default function ContactsPage() {
     { key: 'f_last_contacted_at', label: 'Last Contacted At' },
     { key: 'f_created_at', label: 'Created At' },
   ];
+
+  const renderCustomFilterField = (field: CustomFieldDefinition) => {
+    const rawValue = draftCustomFilters[field.name];
+    const value = Array.isArray(rawValue) ? rawValue : (rawValue ?? '');
+
+    if (field.field_type === 'multiselect') {
+      const selected = Array.isArray(rawValue)
+        ? rawValue
+        : typeof rawValue === 'string' && rawValue
+          ? rawValue.split('||').filter(Boolean)
+          : [];
+
+      return (
+        <Autocomplete
+          key={field.id}
+          multiple
+          options={field.options ?? []}
+          value={selected}
+          onChange={(_, newValue) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: newValue }));
+          }}
+          renderTags={(selectedValues, getTagProps) =>
+            selectedValues.map((option, index) => (
+              <Chip label={option} size="small" {...getTagProps({ index })} key={`${field.id}-${option}`} />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField {...params} size="small" label={`${field.label} (Custom)`} />
+          )}
+        />
+      );
+    }
+
+    if (field.field_type === 'select') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          select
+          label={`${field.label} (Custom)`}
+          value={Array.isArray(value) ? '' : value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+        >
+          <MenuItem value="">Any</MenuItem>
+          {(field.options ?? []).map((opt) => (
+            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+          ))}
+        </TextField>
+      );
+    }
+
+    if (field.field_type === 'boolean') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          select
+          label={`${field.label} (Custom)`}
+          value={value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+        >
+          <MenuItem value="">Any</MenuItem>
+          <MenuItem value="yes">Yes</MenuItem>
+          <MenuItem value="no">No</MenuItem>
+        </TextField>
+      );
+    }
+
+    if (field.field_type === 'date') {
+      return (
+        <TextField
+          key={field.id}
+          size="small"
+          type="date"
+          label={`${field.label} (Custom)`}
+          value={value}
+          onChange={(e) => {
+            setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+          }}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+      );
+    }
+
+    return (
+      <TextField
+        key={field.id}
+        size="small"
+        type={field.field_type === 'number' || field.field_type === 'currency' ? 'number' : 'text'}
+        label={`${field.label} (Custom)`}
+        value={value}
+        onChange={(e) => {
+          setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
+        }}
+      />
+    );
+  };
 
   return (
     <Box>
@@ -354,17 +464,7 @@ export default function ContactsPage() {
                 }}
               />
             ))}
-            {customFields?.map((field) => (
-              <TextField
-                key={field.id}
-                size="small"
-                label={`${field.label} (Custom)`}
-                value={draftCustomFilters[field.name] ?? ''}
-                onChange={(e) => {
-                  setDraftCustomFilters((prev) => ({ ...prev, [field.name]: e.target.value }));
-                }}
-              />
-            ))}
+            {customFields?.map((field) => renderCustomFilterField(field))}
           </Box>
         </DialogContent>
         <DialogActions>
