@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 
@@ -26,6 +27,7 @@ interface Member {
   name: string;
   email: string;
   role: string;
+  email_verified_at: string | null;
 }
 
 interface MembersResponse {
@@ -83,6 +85,11 @@ export default function MembersSettingsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members'] }),
   });
 
+  const verifyMutation = useMutation({
+    mutationFn: (userId: string) => api.post(`/team/members/${userId}/verify`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members'] }),
+  });
+
   if (isLoading) {
     return <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>;
   }
@@ -115,7 +122,9 @@ export default function MembersSettingsPage() {
             </Avatar>
             <Box flex={1}>
               <Typography variant="body2" fontWeight={600}>{member.name}</Typography>
-              <Typography variant="caption" color="text.secondary">{member.email}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {member.email} {member.email_verified_at ? '• verified' : '• unverified'}
+              </Typography>
             </Box>
             <TextField
               select
@@ -131,6 +140,11 @@ export default function MembersSettingsPage() {
                 <MenuItem key={r} value={r} sx={{ textTransform: 'capitalize' }}>{r}</MenuItem>
               ))}
             </TextField>
+            {canManageMembers && !member.email_verified_at && (
+              <IconButton size="small" color="success" onClick={() => verifyMutation.mutate(member.id)}>
+                <CheckCircleOutlineIcon fontSize="small" />
+              </IconButton>
+            )}
             {member.role !== 'owner' && canManageMembers && (
               <IconButton size="small" color="error" onClick={() => removeMutation.mutate(member.id)}>
                 <DeleteIcon fontSize="small" />

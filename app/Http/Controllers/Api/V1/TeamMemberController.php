@@ -51,6 +51,7 @@ class TeamMemberController extends Controller
                 'email' => $user->email,
                 'avatar_url' => $user->avatar_url,
                 'role' => $user->pivot->role,
+                'email_verified_at' => $user->email_verified_at,
                 'last_login_at' => $user->last_login_at,
             ]);
 
@@ -184,6 +185,33 @@ class TeamMemberController extends Controller
         }
 
         return response()->json(null, 204);
+    }
+
+    public function verify(Request $request, User $user): JsonResponse
+    {
+        $team = $this->currentTeamOrFail($request);
+
+        if (!$this->isAdminOrOwner($request)) {
+            return response()->json(['message' => 'Only owner/admin can verify users.'], 403);
+        }
+
+        if (!$team->members()->where('users.id', $user->id)->exists()) {
+            return response()->json(['message' => 'User is not a team member.'], 404);
+        }
+
+        if ($user->email_verified_at) {
+            return response()->json(['message' => 'User is already verified.']);
+        }
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return response()->json([
+            'message' => 'User verified.',
+            'data' => [
+                'id' => $user->id,
+                'email_verified_at' => $user->email_verified_at,
+            ],
+        ]);
     }
 
     public function pendingInvitations(Request $request): JsonResponse

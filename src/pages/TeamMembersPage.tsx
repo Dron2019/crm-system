@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import {
   useTeamMembers,
   useTeamInvitations,
@@ -36,6 +37,7 @@ import {
   useUpdateMemberRole,
   useRemoveMember,
   useCancelInvitation,
+  useVerifyMember,
 } from '@/hooks/useTeamMembers';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
@@ -64,6 +66,7 @@ export default function TeamMembersPage() {
   const updateRole = useUpdateMemberRole();
   const removeMember = useRemoveMember();
   const cancelInvitation = useCancelInvitation();
+  const verifyMember = useVerifyMember();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -258,6 +261,7 @@ export default function TeamMembersPage() {
                 <TableRow>
                   <TableCell>Member</TableCell>
                   <TableCell>Email</TableCell>
+                  <TableCell>Verified</TableCell>
                   <TableCell>Role</TableCell>
                   <TableCell>Last Login</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -275,6 +279,13 @@ export default function TeamMembersPage() {
                       </Box>
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
+                    <TableCell>
+                      {member.email_verified_at ? (
+                        <Chip label="Verified" size="small" color="success" />
+                      ) : (
+                        <Chip label="Unverified" size="small" color="warning" variant="outlined" />
+                      )}
+                    </TableCell>
                     <TableCell>
                       {member.role === 'owner' ? (
                         <Chip label="Owner" color="error" size="small" />
@@ -304,29 +315,47 @@ export default function TeamMembersPage() {
                         : 'Never'}
                     </TableCell>
                     <TableCell align="right">
-                      {canManageMembers && member.role !== 'owner' && member.id !== user?.id && (
-                        <Tooltip title="Remove member">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setConfirmDelete({
-                                open: true,
-                                userId: member.id,
-                                name: member.name,
-                              })
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                        {canManageMembers && !member.email_verified_at && (
+                          <Tooltip title="Verify user">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() =>
+                                verifyMember.mutate(member.id, {
+                                  onSuccess: () => addToast('User verified', 'success'),
+                                  onError: () => addToast('Failed to verify user', 'error'),
+                                })
+                              }
+                            >
+                              <CheckCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {canManageMembers && member.role !== 'owner' && member.id !== user?.id && (
+                          <Tooltip title="Remove member">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() =>
+                                setConfirmDelete({
+                                  open: true,
+                                  userId: member.id,
+                                  name: member.name,
+                                })
+                              }
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
                 {visibleMembers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                       No team members found.
                     </TableCell>
                   </TableRow>

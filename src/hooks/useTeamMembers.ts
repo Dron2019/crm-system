@@ -8,6 +8,7 @@ interface TeamMember {
   email: string;
   avatar_url: string | null;
   role: string;
+  email_verified_at: string | null;
   last_login_at: string | null;
 }
 
@@ -89,6 +90,20 @@ export function useRemoveMember() {
   return useMutation({
     mutationFn: async (userId: string) => {
       await api.delete(`/team/members/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+    },
+  });
+}
+
+export function useVerifyMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data } = await api.post(`/team/members/${userId}/verify`);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] });

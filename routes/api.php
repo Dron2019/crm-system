@@ -120,6 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('team')->group(function () {
             Route::get('members', [TeamMemberController::class, 'index']);
             Route::put('members/{user}/role', [TeamMemberController::class, 'updateRole']);
+            Route::post('members/{user}/verify', [TeamMemberController::class, 'verify']);
             Route::delete('members/{user}', [TeamMemberController::class, 'remove']);
             Route::get('invitations', [TeamMemberController::class, 'pendingInvitations']);
             Route::post('invitations', [TeamMemberController::class, 'invite']);
