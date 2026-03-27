@@ -317,10 +317,15 @@ export default function DealsPage() {
     + Object.values(customFilters).filter((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v))).length;
 
   const renderCustomFilterField = (field: CustomFieldDefinition) => {
+    const normalizedType = String(field.field_type ?? '').toLowerCase();
+    const normalizedOptions = Array.isArray(field.options)
+      ? field.options.map((opt: string) => String(opt ?? '')).filter(Boolean)
+      : [];
+
     const rawValue = draftCustomFilters[field.name];
     const value = Array.isArray(rawValue) ? rawValue : (rawValue ?? '');
 
-    if (field.field_type === 'multiselect') {
+    if (normalizedType === 'multiselect' || normalizedType === 'multi_select' || normalizedType === 'multi-select') {
       const selected = Array.isArray(rawValue)
         ? rawValue
         : typeof rawValue === 'string' && rawValue
@@ -331,7 +336,8 @@ export default function DealsPage() {
         <Autocomplete
           key={field.id}
           multiple
-          options={field.options ?? []}
+          disableCloseOnSelect
+          options={normalizedOptions}
           value={selected}
           onChange={(_, newValue) => {
             setDraftCustomFilters((prev) => ({ ...prev, [field.name]: newValue }));
@@ -361,7 +367,7 @@ export default function DealsPage() {
           }}
         >
           <MenuItem value="">Any</MenuItem>
-          {(field.options ?? []).map((opt) => (
+          {normalizedOptions.map((opt) => (
             <MenuItem key={opt} value={opt}>{opt}</MenuItem>
           ))}
         </TextField>
