@@ -16,7 +16,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -90,6 +92,64 @@ class AuthController extends Controller
     {
         return response()->json([
             'data' => new UserResource($request->user()->load('currentTeam', 'teams')),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'timezone' => ['nullable', 'string', 'max:100'],
+            'avatar' => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            // Remove previous avatar from public disk when it belongs to this app's storage path.
+            if ($user->avatar_url && str_contains($user->avatar_url, '/storage/')) {
+                $oldPath = ltrim((string) parse_url($user->avatar_url, PHP_URL_PATH), '/');
+                $oldPath = str_starts_with($oldPath, 'storage/') ? substr($oldPath, 8) : $oldPath;
+                if ($oldPath !== '') {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            $filename = (string) Str::uuid() . '.' . $request->file('avatar')->getClientOriginalExtension();
+            $path = $request->file('avatar')->storeAs("avatars/users/{$user->id}", $filename, 'public');
+            $validated['avatar_url'] = Storage::disk('public')->url($path);
+        }
+
+        unset($validated['avatar']);
+
+        $user->update($validated);
+
+        return response()->json([
+            'data' => new UserResource($user->fresh()->load('currentTeam', 'teams')),
+        ]);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+        if (!Hash::check($validated['current_password'], (string) $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Current password is incorrect.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
         ]);
     }
 

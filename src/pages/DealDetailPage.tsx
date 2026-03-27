@@ -316,11 +316,18 @@ export default function DealDetailPage() {
             <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
               <Tab label="Timeline" />
               <Tab label="Activities" />
-              <Tab label="Notes" />
             </Tabs>
             <Box p={2}>
               {tab === 0 && (
-                <EntityTimeline items={timeline ?? []} loading={timelineLoading} />
+                <Box>
+                  <EntityTimeline items={timeline ?? []} loading={timelineLoading} />
+                  <Box mt={2.5}>
+                    <Typography variant="subtitle2" fontWeight={600} mb={1.25}>
+                      Comments
+                    </Typography>
+                    <CommentsSection entityType="deal" entityId={id!} />
+                  </Box>
+                </Box>
               )}
 
               {tab === 1 && (
@@ -421,9 +428,6 @@ export default function DealDetailPage() {
                 </Box>
               )}
 
-              {tab === 2 && (
-                <CommentsSection entityType="deal" entityId={id!} />
-              )}
             </Box>
           </Paper>
         </Grid>

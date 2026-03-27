@@ -38,7 +38,7 @@ interface CustomFieldDef {
   display_order: number;
 }
 
-const fieldTypes = ['text', 'textarea', 'number', 'date', 'select', 'multiselect', 'boolean', 'currency', 'url', 'email'];
+const fieldTypes = ['text', 'textarea', 'number', 'date', 'select', 'multiselect', 'boolean', 'currency', 'url', 'email', 'file'];
 const entityTypes = ['contact', 'company', 'deal', 'team'];
 
 export default function CustomFieldsSettingsPage() {

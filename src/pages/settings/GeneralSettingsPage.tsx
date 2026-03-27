@@ -10,6 +10,7 @@ import {
   Alert,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import UploadIcon from '@mui/icons-material/Upload';
 import { useAuthStore } from '@/stores/authStore';
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -19,6 +20,8 @@ export default function GeneralSettingsPage() {
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [timezone, setTimezone] = useState(user?.timezone ?? '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,9 +29,22 @@ export default function GeneralSettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const profileMutation = useMutation({
-    mutationFn: () => api.put('/user/profile', { name, email, timezone }),
+    mutationFn: async () => {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('timezone', timezone);
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+      return api.put('/user/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
     onSuccess: () => {
       fetchUser();
+      setAvatarFile(null);
+      setAvatarPreview(null);
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 3000);
     },
@@ -57,12 +73,30 @@ export default function GeneralSettingsPage() {
         <CardContent>
           <Typography variant="h6" fontWeight={600} mb={2}>Profile</Typography>
           <Box display="flex" alignItems="center" gap={2} mb={3}>
-            <Avatar sx={{ width: 56, height: 56, bgcolor: 'primary.main', fontSize: 22 }}>
+            <Avatar src={avatarPreview ?? user?.avatar_url ?? undefined} sx={{ width: 56, height: 56, bgcolor: 'primary.main', fontSize: 22 }}>
               {user?.name?.charAt(0) ?? '?'}
             </Avatar>
             <Box>
               <Typography fontWeight={600}>{user?.name}</Typography>
               <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
+              <Button
+                component="label"
+                size="small"
+                startIcon={<UploadIcon />}
+                sx={{ mt: 0.5, px: 0.5, minWidth: 'auto' }}
+              >
+                Upload avatar
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setAvatarFile(file);
+                    setAvatarPreview(file ? URL.createObjectURL(file) : null);
+                  }}
+                />
+              </Button>
             </Box>
           </Box>
 
