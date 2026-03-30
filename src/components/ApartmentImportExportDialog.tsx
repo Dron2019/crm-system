@@ -130,6 +130,14 @@ export default function ApartmentImportExportDialog({
   const [importBuildings, setImportBuildings] = useState<BuildingOption[]>([]);
   const [importSections, setImportSections] = useState<SectionOption[]>([]);
   const [importStatuses, setImportStatuses] = useState<StatusOption[]>([]);
+  const [selectedRowNumbers, setSelectedRowNumbers] = useState<number[]>([]);
+  const [bulkScope, setBulkScope] = useState<'selected' | 'errors' | 'all'>('selected');
+  const [bulkBuildingId, setBulkBuildingId] = useState('');
+  const [bulkSectionId, setBulkSectionId] = useState('');
+  const [bulkStatusId, setBulkStatusId] = useState('');
+  const [bulkRooms, setBulkRooms] = useState('');
+  const [bulkArea, setBulkArea] = useState('');
+  const [bulkPrice, setBulkPrice] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? '');
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId ?? '');
   const [selectedFields, setSelectedFields] = useState<string[]>([
@@ -167,6 +175,9 @@ export default function ApartmentImportExportDialog({
     () => importPreviewRows.filter((row) => row.errors.length > 0).length,
     [importPreviewRows],
   );
+  const selectedRowsCount = selectedRowNumbers.length;
+  const isAllRowsSelected = importPreviewRows.length > 0 && selectedRowsCount === importPreviewRows.length;
+  const isPartiallySelected = selectedRowsCount > 0 && selectedRowsCount < importPreviewRows.length;
 
   const getSectionsForBuilding = (rowBuildingId: string | null | undefined) => {
     if (!rowBuildingId) {
@@ -197,6 +208,108 @@ export default function ApartmentImportExportDialog({
         errors: [],
       };
     }));
+  };
+
+  const applyBulkChanges = () => {
+    const changes: Partial<ApartmentImportPreviewRowFields> = {};
+
+    if (bulkBuildingId) {
+      changes.building_id = bulkBuildingId;
+      changes.section_id = bulkSectionId || null;
+    } else if (bulkSectionId) {
+      changes.section_id = bulkSectionId;
+    }
+
+    if (bulkStatusId) {
+      changes.status_id = bulkStatusId;
+    }
+
+    if (bulkRooms !== '') {
+      const parsed = Number(bulkRooms);
+      if (!Number.isNaN(parsed)) {
+        changes.rooms = parsed;
+      }
+    }
+
+    if (bulkArea !== '') {
+      const parsed = Number(bulkArea);
+      if (!Number.isNaN(parsed)) {
+        changes.area = parsed;
+      }
+    }
+
+    if (bulkPrice !== '') {
+      const parsed = Number(bulkPrice);
+      if (!Number.isNaN(parsed)) {
+        changes.price = parsed;
+      }
+    }
+
+    if (Object.keys(changes).length === 0) {
+      addToast('Set at least one bulk field before applying.', 'warning');
+      return;
+    }
+
+    const targetSet = new Set<number>();
+
+    if (bulkScope === 'all') {
+      importPreviewRows.forEach((row) => targetSet.add(row.row_number));
+    }
+
+    if (bulkScope === 'errors') {
+      importPreviewRows.filter((row) => row.errors.length > 0).forEach((row) => targetSet.add(row.row_number));
+    }
+
+    if (bulkScope === 'selected') {
+      selectedRowNumbers.forEach((rowNumber) => targetSet.add(rowNumber));
+    }
+
+    if (targetSet.size === 0) {
+      addToast('No target rows found for selected bulk scope.', 'warning');
+      return;
+    }
+
+    setImportPreviewRows((prev) => prev.map((row) => {
+      if (!targetSet.has(row.row_number)) {
+        return row;
+      }
+
+      const nextFields = { ...row.fields, ...changes };
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'building_id')) {
+        const sectionsForBuilding = getSectionsForBuilding(nextFields.building_id);
+        if (!sectionsForBuilding.some((section) => section.id === nextFields.section_id)) {
+          nextFields.section_id = null;
+        }
+      }
+
+      return {
+        ...row,
+        fields: nextFields,
+        errors: [],
+      };
+    }));
+
+    addToast(`Bulk changes applied to ${targetSet.size} row(s).`, 'success');
+  };
+
+  const toggleRowSelection = (rowNumber: number, checked: boolean) => {
+    setSelectedRowNumbers((prev) => {
+      if (checked) {
+        return prev.includes(rowNumber) ? prev : [...prev, rowNumber];
+      }
+
+      return prev.filter((item) => item !== rowNumber);
+    });
+  };
+
+  const toggleSelectAllRows = (checked: boolean) => {
+    if (!checked) {
+      setSelectedRowNumbers([]);
+      return;
+    }
+
+    setSelectedRowNumbers(importPreviewRows.map((row) => row.row_number));
   };
 
   const downloadBlob = (data: BlobPart, fallbackFileName: string, contentDisposition?: string) => {
@@ -251,6 +364,14 @@ export default function ApartmentImportExportDialog({
 
       const rows = (data.rows ?? []) as ApartmentImportPreviewRow[];
       setImportPreviewRows(rows);
+      setSelectedRowNumbers([]);
+      setBulkScope('selected');
+      setBulkBuildingId('');
+      setBulkSectionId('');
+      setBulkStatusId('');
+      setBulkRooms('');
+      setBulkArea('');
+      setBulkPrice('');
       setImportBuildings((data.options?.buildings ?? []) as BuildingOption[]);
       setImportSections((data.options?.sections ?? []) as SectionOption[]);
       setImportStatuses((data.options?.statuses ?? []) as StatusOption[]);
@@ -295,6 +416,7 @@ export default function ApartmentImportExportDialog({
       queryClient.invalidateQueries({ queryKey: ['chessboard'] });
 
       setImportPreviewRows([]);
+      setSelectedRowNumbers([]);
       setImportBuildings([]);
       setImportSections([]);
       setImportStatuses([]);
@@ -386,6 +508,14 @@ export default function ApartmentImportExportDialog({
                     variant="outlined"
                     onClick={() => {
                       setImportPreviewRows([]);
+                      setSelectedRowNumbers([]);
+                      setBulkScope('selected');
+                      setBulkBuildingId('');
+                      setBulkSectionId('');
+                      setBulkStatusId('');
+                      setBulkRooms('');
+                      setBulkArea('');
+                      setBulkPrice('');
                       setImportBuildings([]);
                       setImportSections([]);
                       setImportStatuses([]);
@@ -420,10 +550,110 @@ export default function ApartmentImportExportDialog({
                     {importFileName ? ` File: ${importFileName}` : ''}
                   </Alert>
 
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="subtitle2" mb={1.5}>Mass Actions For Flats</Typography>
+                    <Box display="grid" gridTemplateColumns={{ xs: '1fr', md: 'repeat(4, 1fr)' }} gap={1}>
+                      <TextField
+                        select
+                        size="small"
+                        label="Scope"
+                        value={bulkScope}
+                        onChange={(e) => setBulkScope(e.target.value as 'selected' | 'errors' | 'all')}
+                      >
+                        <MenuItem value="selected">Selected rows ({selectedRowsCount})</MenuItem>
+                        <MenuItem value="errors">Rows with errors ({rowsWithErrors})</MenuItem>
+                        <MenuItem value="all">All rows ({importPreviewRows.length})</MenuItem>
+                      </TextField>
+
+                      <TextField
+                        select
+                        size="small"
+                        label="Building"
+                        value={bulkBuildingId}
+                        onChange={(e) => {
+                          setBulkBuildingId(e.target.value);
+                          setBulkSectionId('');
+                        }}
+                      >
+                        <MenuItem value="">Keep current</MenuItem>
+                        {importBuildings.map((building) => (
+                          <MenuItem key={building.id} value={building.id}>
+                            {building.name}{building.project_name ? ` (${building.project_name})` : ''}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+
+                      <TextField
+                        select
+                        size="small"
+                        label="Section"
+                        value={bulkSectionId}
+                        onChange={(e) => setBulkSectionId(e.target.value)}
+                        disabled={!bulkBuildingId}
+                      >
+                        <MenuItem value="">Main / None</MenuItem>
+                        {getSectionsForBuilding(bulkBuildingId).map((section) => (
+                          <MenuItem key={section.id} value={section.id}>{section.name}</MenuItem>
+                        ))}
+                      </TextField>
+
+                      <TextField
+                        select
+                        size="small"
+                        label="Status"
+                        value={bulkStatusId}
+                        onChange={(e) => setBulkStatusId(e.target.value)}
+                      >
+                        <MenuItem value="">Keep current</MenuItem>
+                        {importStatuses.map((status) => (
+                          <MenuItem key={status.id} value={status.id}>{status.name}</MenuItem>
+                        ))}
+                      </TextField>
+
+                      <TextField
+                        size="small"
+                        label="Rooms"
+                        type="number"
+                        value={bulkRooms}
+                        onChange={(e) => setBulkRooms(e.target.value)}
+                        placeholder="Keep current"
+                      />
+
+                      <TextField
+                        size="small"
+                        label="Area"
+                        type="number"
+                        value={bulkArea}
+                        onChange={(e) => setBulkArea(e.target.value)}
+                        placeholder="Keep current"
+                      />
+
+                      <TextField
+                        size="small"
+                        label="Price"
+                        type="number"
+                        value={bulkPrice}
+                        onChange={(e) => setBulkPrice(e.target.value)}
+                        placeholder="Keep current"
+                      />
+
+                      <Button variant="contained" onClick={applyBulkChanges}>
+                        Apply Bulk
+                      </Button>
+                    </Box>
+                  </Paper>
+
                   <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 420 }}>
                     <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={isAllRowsSelected}
+                              indeterminate={isPartiallySelected}
+                              onChange={(e) => toggleSelectAllRows(e.target.checked)}
+                            />
+                          </TableCell>
                           <TableCell>Row</TableCell>
                           <TableCell>Building</TableCell>
                           <TableCell>Section</TableCell>
@@ -441,6 +671,12 @@ export default function ApartmentImportExportDialog({
                           const rowSections = getSectionsForBuilding(row.fields.building_id);
                           return (
                             <TableRow key={row.row_number}>
+                              <TableCell padding="checkbox">
+                                <Checkbox
+                                  checked={selectedRowNumbers.includes(row.row_number)}
+                                  onChange={(e) => toggleRowSelection(row.row_number, e.target.checked)}
+                                />
+                              </TableCell>
                               <TableCell>{row.row_number}</TableCell>
                               <TableCell sx={{ minWidth: 210 }}>
                                 <TextField
