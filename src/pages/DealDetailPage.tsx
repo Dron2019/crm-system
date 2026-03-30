@@ -34,6 +34,7 @@ import { useToastStore } from '@/stores/toastStore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EntityTimeline from '@/components/EntityTimeline';
 import CommentsSection from '@/components/CommentsSection';
+import DealApartmentInfo from '@/components/DealApartmentInfo';
 import api from '@/lib/api';
 import type { Activity } from '@/types';
 import { useCurrencyStore } from '@/stores/currencyStore';
@@ -324,6 +325,12 @@ export default function DealDetailPage() {
               )}
             </Box>
           </Paper>
+
+          <Box mt={2}>
+            <DealApartmentInfo deal={deal} onApartmentUpdated={() => {
+              queryClient.invalidateQueries({ queryKey: ['deals', id] });
+            }} />
+          </Box>
         </Grid>
 
         <Grid size={{ xs: 12, md: 7 }}>

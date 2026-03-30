@@ -34,6 +34,9 @@ class Deal extends Model
         'stage_id',
         'contact_id',
         'company_id',
+        'apartment_id',
+        'attached_by',
+        'attached_at',
         'assigned_to',
         'title',
         'value',
@@ -51,6 +54,7 @@ class Deal extends Model
             'value' => 'decimal:2',
             'probability' => 'integer',
             'expected_close_date' => 'date',
+            'attached_at' => 'datetime',
             'custom_fields' => 'array',
         ];
     }
@@ -78,6 +82,16 @@ class Deal extends Model
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function apartment(): BelongsTo
+    {
+        return $this->belongsTo(Apartment::class);
+    }
+
+    public function attachedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'attached_by');
     }
 
     public function activities(): MorphMany

@@ -34,6 +34,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EmailIcon from '@mui/icons-material/Email';
 import HistoryIcon from '@mui/icons-material/History';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import SearchIcon from '@mui/icons-material/Search';
@@ -52,6 +53,7 @@ const navItems = [
   { label: 'Contacts', icon: <PeopleIcon />, path: '/contacts' },
   { label: 'Companies', icon: <BusinessIcon />, path: '/companies' },
   { label: 'Deals', icon: <HandshakeIcon />, path: '/deals' },
+  { label: 'Objects', icon: <ApartmentIcon />, path: '/objects' },
   { label: 'Activities', icon: <EventNoteIcon />, path: '/activities' },
   { label: 'Calendar', icon: <CalendarTodayIcon />, path: '/calendar' },
   { label: 'Emails', icon: <EmailIcon />, path: '/emails' },

@@ -97,6 +97,9 @@ export interface Deal {
   contact?: Contact;
   company?: Company;
   assigned_to: User | null;
+  apartment?: Apartment | null;
+  attached_by?: User | null;
+  attached_at?: string | null;
   tags: Tag[];
   custom_fields: Record<string, unknown> | null;
   created_at: string;
@@ -184,4 +187,89 @@ export interface AuditLog {
   new_values: Record<string, unknown> | null;
   ip_address: string | null;
   created_at: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  manager_id: string;
+  manager?: User;
+  buildings?: Building[];
+  documents?: ProjectDocument[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Building {
+  id: string;
+  project_id: string;
+  name: string;
+  address: string | null;
+  total_floors: number;
+  sections?: Section[];
+  apartments?: Apartment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Section {
+  id: string;
+  building_id: string;
+  name: string;
+  apartments?: Apartment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApartmentStatus {
+  id: string;
+  name: string;
+  color: string;
+  can_reserve: boolean;
+  can_sell: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Apartment {
+  id: string;
+  building_id: string;
+  section_id: string;
+  floor: number;
+  number: string;
+  rooms: number;
+  area: number;
+  price: number | null;
+  status_id: string;
+  status?: ApartmentStatus;
+  building?: Building;
+  section?: Section;
+  custom_fields?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDocument {
+  id: string;
+  project_id: string;
+  filename: string;
+  file_path: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface Reservation {
+  id: string;
+  apartment_id: string;
+  contact_id: string | null;
+  deal_id: string | null;
+  user_id: string | null;
+  status: string;
+  apartment?: Apartment;
+  contact?: Contact;
+  deal?: Deal;
+  user?: User;
+  created_at: string;
+  updated_at: string;
 }

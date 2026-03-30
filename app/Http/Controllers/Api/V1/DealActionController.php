@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Resources\ActivityResource;
 use App\Http\Resources\NoteResource;
 use App\Http\Resources\DealResource;
+use App\Models\AuditLog;
 use App\Models\Deal;
 use App\Models\Stage;
 use App\Services\DealService;
@@ -104,7 +105,35 @@ class DealActionController extends Controller
                 'occurred_at' => $n->created_at->toISOString(),
             ]);
 
-        $timeline = $activities->concat($notes)
+        $auditEvents = AuditLog::query()
+            ->where('auditable_type', $deal->getMorphClass())
+            ->where('auditable_id', $deal->id)
+            ->whereIn('action', ['apartment_attached', 'apartment_detached'])
+            ->with('user')
+            ->get()
+            ->map(function (AuditLog $log) {
+                $metadata = $log->new_values ?? [];
+                $number = $metadata['apartment_number'] ?? 'N/A';
+                $building = $metadata['building_name'] ?? null;
+                $verb = $log->action === 'apartment_attached' ? 'attached' : 'detached';
+                $title = $log->action === 'apartment_attached'
+                    ? 'Apartment attached'
+                    : 'Apartment detached';
+
+                return [
+                    'id' => $log->id,
+                    'type' => 'audit',
+                    'subtype' => $log->action,
+                    'title' => $title,
+                    'description' => $building
+                        ? "Apartment #{$number} ({$building}) {$verb} to deal"
+                        : "Apartment #{$number} {$verb} to deal",
+                    'user' => $log->user?->name,
+                    'occurred_at' => $log->created_at?->toISOString(),
+                ];
+            });
+
+        $timeline = $activities->concat($notes)->concat($auditEvents)
             ->sortByDesc('occurred_at')
             ->values();
 

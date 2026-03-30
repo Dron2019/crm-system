@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\AttachmentController;
+use App\Http\Controllers\Api\V1\ApartmentImportExportController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CompanyController;
@@ -99,6 +100,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('deals/{deal}/timeline', [DealActionController::class, 'timeline']);
         Route::get('deals/{deal}/activities', [DealActionController::class, 'activities']);
         Route::get('deals/{deal}/notes', [DealActionController::class, 'notes']);
+
+        // Apartments import/export
+        Route::post('apartments/import', [ApartmentImportExportController::class, 'import']);
+        Route::get('apartments/import-template', [ApartmentImportExportController::class, 'template']);
+        Route::post('apartments/export', [ApartmentImportExportController::class, 'export']);
+        Route::post('deals/{deal}/attach-apartment', [DealController::class, 'attachApartment']);
+        Route::post('deals/{deal}/detach-apartment', [DealController::class, 'detachApartment']);
 
         // Pipelines
         Route::apiResource('pipelines', PipelineController::class);

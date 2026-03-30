@@ -14,6 +14,7 @@ return [
                 'companies.view', 'companies.create', 'companies.update', 'companies.delete', 'companies.export',
                 'deals.view', 'deals.create', 'deals.update', 'deals.delete', 'deals.export',
                 'deals.import',
+                'apartments.import', 'apartments.export',
                 'pipelines.view', 'pipelines.create', 'pipelines.update', 'pipelines.delete',
                 'activities.view', 'activities.create', 'activities.update', 'activities.delete',
                 'notes.view', 'notes.create', 'notes.update', 'notes.delete',

@@ -49,6 +49,11 @@ const TeamsSettingsPage = lazy(() => import('@/pages/settings/TeamsSettingsPage'
 const CurrencySettingsPage = lazy(() => import('@/pages/settings/CurrencySettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
+// Object Chessboard pages
+const ObjectsPage = lazy(() => import('@/pages/ObjectsPage'));
+const ProjectBuildingsPage = lazy(() => import('@/pages/ProjectBuildingsPage'));
+const ChessboardPage = lazy(() => import('@/pages/ChessboardPage'));
+
 function LazyFallback() {
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
@@ -114,6 +119,11 @@ const router = createBrowserRouter([
           { path: '/team', element: <SuspenseWrapper><TeamMembersPage /></SuspenseWrapper> },
           { path: '/audit-log', element: <SuspenseWrapper><AuditLogPage /></SuspenseWrapper> },
           { path: '/workflows', element: <SuspenseWrapper><WorkflowsPage /></SuspenseWrapper> },
+
+          { path: '/objects', element: <SuspenseWrapper><ObjectsPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings', element: <SuspenseWrapper><ProjectBuildingsPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings/:buildingId/chessboard', element: <SuspenseWrapper><ChessboardPage /></SuspenseWrapper> },
+
           {
             path: '/settings',
             element: <SuspenseWrapper><SettingsLayout /></SuspenseWrapper>,
