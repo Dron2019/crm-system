@@ -51,8 +51,11 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Object Chessboard pages
 const ObjectsPage = lazy(() => import('@/pages/ObjectsPage'));
+const ProjectFormPage = lazy(() => import('@/pages/ProjectFormPage'));
 const ProjectBuildingsPage = lazy(() => import('@/pages/ProjectBuildingsPage'));
+const BuildingFormPage = lazy(() => import('@/pages/BuildingFormPage'));
 const ChessboardPage = lazy(() => import('@/pages/ChessboardPage'));
+const ApartmentFormPage = lazy(() => import('@/pages/ApartmentFormPage'));
 
 function LazyFallback() {
   return (
@@ -121,8 +124,11 @@ const router = createBrowserRouter([
           { path: '/workflows', element: <SuspenseWrapper><WorkflowsPage /></SuspenseWrapper> },
 
           { path: '/objects', element: <SuspenseWrapper><ObjectsPage /></SuspenseWrapper> },
+          { path: '/objects/new', element: <SuspenseWrapper><ProjectFormPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings', element: <SuspenseWrapper><ProjectBuildingsPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings/new', element: <SuspenseWrapper><BuildingFormPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings/:buildingId/chessboard', element: <SuspenseWrapper><ChessboardPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings/:buildingId/apartments/new', element: <SuspenseWrapper><ApartmentFormPage /></SuspenseWrapper> },
 
           {
             path: '/settings',

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\AttachmentController;
+use App\Http\Controllers\Api\V1\ApartmentController;
 use App\Http\Controllers\Api\V1\ApartmentImportExportController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -26,7 +27,9 @@ use App\Http\Controllers\Api\V1\TeamRoleController;
 use App\Http\Controllers\Api\V1\UserManagementController;
 use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\Api\V1\MfaController;
+use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\EmailController;
+use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\WorkflowController;
 use App\Http\Controllers\Api\V1\AiController;
 use Illuminate\Support\Facades\Route;
@@ -107,6 +110,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('apartments/export', [ApartmentImportExportController::class, 'export']);
         Route::post('deals/{deal}/attach-apartment', [DealController::class, 'attachApartment']);
         Route::post('deals/{deal}/detach-apartment', [DealController::class, 'detachApartment']);
+
+        // Object chessboard entities
+        Route::apiResource('projects', ProjectController::class);
+        Route::get('projects/{project}/stats', [ProjectController::class, 'stats']);
+
+        Route::get('projects/{project}/buildings', [BuildingController::class, 'index']);
+        Route::post('projects/{project}/buildings', [BuildingController::class, 'store']);
+        Route::apiResource('buildings', BuildingController::class)->except(['index', 'store']);
+
+        Route::get('buildings/{building}/apartments', [ApartmentController::class, 'index']);
+        Route::post('buildings/{building}/apartments', [ApartmentController::class, 'store']);
+        Route::get('apartments/{apartment}', [ApartmentController::class, 'show']);
+        Route::put('apartments/{apartment}', [ApartmentController::class, 'update']);
+        Route::patch('apartments/{apartment}', [ApartmentController::class, 'update']);
+        Route::post('apartments/{apartment}/change-status', [ApartmentController::class, 'changeStatus']);
 
         // Pipelines
         Route::apiResource('pipelines', PipelineController::class);

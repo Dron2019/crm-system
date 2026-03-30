@@ -12,6 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import GridViewIcon from '@mui/icons-material/GridView';
+import AddIcon from '@mui/icons-material/Add';
 import ApartmentImportExportDialog from '@/components/ApartmentImportExportDialog';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -91,10 +92,19 @@ export default function ProjectBuildingsPage() {
               </Typography>
             )}
           </Box>
-          <ApartmentImportExportDialog
-            projectId={projectId}
-            triggerLabel="Імпорт / Експорт квартир"
-          />
+          <Box display="flex" gap={1}>
+            <ApartmentImportExportDialog
+              projectId={projectId}
+              triggerLabel="Імпорт / Експорт квартир"
+            />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate(`/objects/${projectId}/buildings/new`)}
+            >
+              Новий будинок
+            </Button>
+          </Box>
         </Box>
 
         {/* Buildings Grid */}
@@ -185,9 +195,8 @@ export default function ProjectBuildingsPage() {
             </Typography>
             <Button
               variant="contained"
-              onClick={() => {
-                // TODO: Add building creation
-              }}
+              startIcon={<AddIcon />}
+              onClick={() => navigate(`/objects/${projectId}/buildings/new`)}
               sx={{ mt: 2 }}
             >
               Додати будинок

@@ -90,7 +90,7 @@ export default function ProjectsPage() {
                     transform: 'translateY(-4px)',
                   },
                 }}
-                onClick={() => navigate(`/objects/${project.id}`)}
+                onClick={() => navigate(`/objects/${project.id}/buildings`)}
               >
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -119,7 +119,7 @@ export default function ProjectsPage() {
                   </Box>
                 </CardContent>
                 <CardActions>
-                  <Button size="small" onClick={() => navigate(`/objects/${project.id}`)}>
+                  <Button size="small" onClick={() => navigate(`/objects/${project.id}/buildings`)}>
                     Переглянути
                   </Button>
                   <Button

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
 import ApartmentImportExportDialog from '@/components/ApartmentImportExportDialog';
 import ChessboardGrid from '@/components/ChessboardGrid';
 import ApartmentDetailsPanel from '@/components/ApartmentDetailsPanel';
@@ -38,6 +39,7 @@ interface ChessboardData {
 }
 
 export default function ChessboardPage() {
+  const navigate = useNavigate();
   const { projectId, buildingId } = useParams<{
     projectId: string;
     buildingId: string;
@@ -227,6 +229,13 @@ export default function ChessboardPage() {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">{data?.building?.name}</Typography>
           <Box display="flex" gap={1}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate(`/objects/${projectId}/buildings/${buildingId}/apartments/new`)}
+            >
+              New Apartment
+            </Button>
             <ApartmentImportExportDialog
               projectId={projectId}
               buildingId={buildingId}

@@ -11,6 +11,53 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ApartmentController extends Controller
 {
+    public function store(Request $request, Building $building): JsonResponse
+    {
+        $this->authorize('update', $building);
+
+        $validated = $request->validate([
+            'section_id' => 'nullable|uuid|exists:sections,id',
+            'number' => 'required|string|max:50',
+            'floor' => 'required|integer|min:0|max:200',
+            'rooms' => 'required|integer|min:1|max:20',
+            'area' => 'required|numeric|min:1',
+            'balcony_area' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'status_id' => 'nullable|uuid|exists:apartment_statuses,id',
+            'layout_type' => 'nullable|in:studio,1k,2k,3k,4k,5k,penthouse,other',
+            'has_balcony' => 'nullable|boolean',
+            'has_terrace' => 'nullable|boolean',
+            'has_loggia' => 'nullable|boolean',
+            'ceiling_height' => 'nullable|numeric|min:0',
+            'custom_fields' => 'nullable|array',
+        ]);
+
+        $apartment = new Apartment($validated);
+        $apartment->team_id = $request->user()->current_team_id;
+        $apartment->project_id = $building->project_id;
+        $apartment->building_id = $building->id;
+
+        if (!isset($validated['has_balcony'])) {
+            $apartment->has_balcony = false;
+        }
+        if (!isset($validated['has_terrace'])) {
+            $apartment->has_terrace = false;
+        }
+        if (!isset($validated['has_loggia'])) {
+            $apartment->has_loggia = false;
+        }
+
+        if ($apartment->area > 0 && $apartment->price > 0) {
+            $apartment->price_per_sqm = round($apartment->price / $apartment->area, 2);
+        }
+
+        $apartment->save();
+
+        return response()->json([
+            'data' => new ApartmentResource($apartment->load(['status', 'section'])),
+        ], 201);
+    }
+
     public function index(Request $request, Building $building): AnonymousResourceCollection
     {
         $this->authorize('view', $building);
