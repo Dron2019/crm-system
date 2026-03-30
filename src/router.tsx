@@ -125,10 +125,13 @@ const router = createBrowserRouter([
 
           { path: '/objects', element: <SuspenseWrapper><ObjectsPage /></SuspenseWrapper> },
           { path: '/objects/new', element: <SuspenseWrapper><ProjectFormPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/edit', element: <SuspenseWrapper><ProjectFormPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings', element: <SuspenseWrapper><ProjectBuildingsPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings/new', element: <SuspenseWrapper><BuildingFormPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings/:buildingId/edit', element: <SuspenseWrapper><BuildingFormPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings/:buildingId/chessboard', element: <SuspenseWrapper><ChessboardPage /></SuspenseWrapper> },
           { path: '/objects/:projectId/buildings/:buildingId/apartments/new', element: <SuspenseWrapper><ApartmentFormPage /></SuspenseWrapper> },
+          { path: '/objects/:projectId/buildings/:buildingId/apartments/:apartmentId/edit', element: <SuspenseWrapper><ApartmentFormPage /></SuspenseWrapper> },
 
           {
             path: '/settings',

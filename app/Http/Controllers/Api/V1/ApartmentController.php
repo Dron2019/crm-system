@@ -127,13 +127,15 @@ class ApartmentController extends Controller
         $this->authorize('update', $apartment);
 
         $validated = $request->validate([
-            'number' => 'string|max:50',
-            'floor' => 'integer|min:1',
-            'rooms' => 'integer|min:1',
-            'area' => 'numeric|min:1',
+            'section_id' => 'nullable|uuid|exists:sections,id',
+            'number' => 'sometimes|required|string|max:50',
+            'floor' => 'sometimes|required|integer|min:0|max:200',
+            'rooms' => 'sometimes|required|integer|min:1|max:20',
+            'area' => 'sometimes|required|numeric|min:1',
             'balcony_area' => 'nullable|numeric|min:0',
-            'price' => 'numeric|min:0',
+            'price' => 'sometimes|required|numeric|min:0',
             'price_per_sqm' => 'nullable|numeric|min:0',
+            'status_id' => 'nullable|uuid|exists:apartment_statuses,id',
             'layout_type' => 'nullable|in:studio,1k,2k,3k,4k,5k,penthouse,other',
             'has_balcony' => 'boolean',
             'has_terrace' => 'boolean',
@@ -142,10 +144,20 @@ class ApartmentController extends Controller
             'custom_fields' => 'nullable|array',
         ]);
 
+        if (
+            !isset($validated['price_per_sqm'])
+            && (array_key_exists('price', $validated) || array_key_exists('area', $validated))
+        ) {
+            $price = (float) ($validated['price'] ?? $apartment->price ?? 0);
+            $area = (float) ($validated['area'] ?? $apartment->area ?? 0);
+
+            $validated['price_per_sqm'] = $area > 0 ? round($price / $area, 2) : null;
+        }
+
         $apartment->update($validated);
 
         return response()->json([
-            'data' => new ApartmentResource($apartment),
+            'data' => new ApartmentResource($apartment->fresh(['status', 'section', 'building'])),
         ]);
     }
 

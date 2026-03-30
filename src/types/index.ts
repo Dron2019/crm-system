@@ -191,8 +191,20 @@ export interface AuditLog {
 
 export interface Project {
   id: string;
+  brand?: string | null;
+  slug?: string;
+  country?: string | null;
+  city?: string | null;
+  address?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  status?: string | null;
+  start_date?: string | null;
+  delivery_date?: string | null;
   name: string;
   description: string | null;
+  site_url?: string | null;
+  logo_url?: string | null;
   manager_id: string;
   manager?: User;
   buildings?: Building[];
@@ -205,8 +217,19 @@ export interface Building {
   id: string;
   project_id: string;
   name: string;
+  number?: string | null;
+  city?: string | null;
   address: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   total_floors: number;
+  total_apartments?: number | null;
+  apartments_count?: number | null;
+  status?: string | null;
+  construction_start?: string | null;
+  completion_date?: string | null;
+  description?: string | null;
+  project?: Project;
   sections?: Section[];
   apartments?: Apartment[];
   created_at: string;
@@ -217,6 +240,8 @@ export interface Section {
   id: string;
   building_id: string;
   name: string;
+  number?: string | null;
+  description?: string | null;
   apartments?: Apartment[];
   created_at: string;
   updated_at: string;
@@ -234,17 +259,25 @@ export interface ApartmentStatus {
 
 export interface Apartment {
   id: string;
+  project_id?: string;
   building_id: string;
-  section_id: string;
+  section_id: string | null;
   floor: number;
   number: string;
   rooms: number;
   area: number;
+  balcony_area?: number | null;
   price: number | null;
-  status_id: string;
+  price_per_sqm?: number | null;
+  status_id: string | null;
   status?: ApartmentStatus;
   building?: Building;
   section?: Section;
+  layout_type?: string | null;
+  has_balcony?: boolean;
+  has_terrace?: boolean;
+  has_loggia?: boolean;
+  ceiling_height?: number | null;
   custom_fields?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;

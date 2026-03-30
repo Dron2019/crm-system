@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\CompanyNestedController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\ContactImportExportController;
 use App\Http\Controllers\Api\V1\ContactNestedController;
+use App\Http\Controllers\Api\V1\ChessboardController;
 use App\Http\Controllers\Api\V1\DealImportExportController;
 use App\Http\Controllers\Api\V1\CustomFieldController;
 use App\Http\Controllers\Api\V1\DashboardController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PipelineController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\SectionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TeamMemberController;
 use App\Http\Controllers\Api\V1\TeamRoleController;
@@ -118,6 +120,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('projects/{project}/buildings', [BuildingController::class, 'index']);
         Route::post('projects/{project}/buildings', [BuildingController::class, 'store']);
         Route::apiResource('buildings', BuildingController::class)->except(['index', 'store']);
+        Route::get('buildings/{building}/chessboard', [ChessboardController::class, 'show']);
+        Route::get('buildings/{building}/chessboard/filters', [ChessboardController::class, 'filters']);
+        Route::post('buildings/{building}/sections', [SectionController::class, 'store']);
+        Route::put('sections/{section}', [SectionController::class, 'update']);
+        Route::patch('sections/{section}', [SectionController::class, 'update']);
+        Route::delete('sections/{section}', [SectionController::class, 'destroy']);
 
         Route::get('buildings/{building}/apartments', [ApartmentController::class, 'index']);
         Route::post('buildings/{building}/apartments', [ApartmentController::class, 'store']);

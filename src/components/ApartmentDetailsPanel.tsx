@@ -19,9 +19,10 @@ import { useToastStore } from '@/stores/toastStore';
 interface ApartmentDetailsPanelProps {
   apartment: ChessboardApartment;
   onClose: () => void;
+  onEdit?: (apartment: ChessboardApartment) => void;
 }
 
-export default function ApartmentDetailsPanel({ apartment, onClose }: ApartmentDetailsPanelProps) {
+export default function ApartmentDetailsPanel({ apartment, onClose, onEdit }: ApartmentDetailsPanelProps) {
   const [selectedDealId, setSelectedDealId] = useState('');
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
@@ -76,9 +77,16 @@ export default function ApartmentDetailsPanel({ apartment, onClose }: ApartmentD
             />
           </Box>
         </Box>
-        <Button variant="contained" onClick={onClose}>
-          Закрити
-        </Button>
+        <Box display="flex" gap={1}>
+          {onEdit && (
+            <Button variant="outlined" onClick={() => onEdit(apartment)}>
+              Edit
+            </Button>
+          )}
+          <Button variant="contained" onClick={onClose}>
+            Закрити
+          </Button>
+        </Box>
       </Box>
 
       <Box mt={2} pt={2} borderTop="1px solid" borderColor="divider">

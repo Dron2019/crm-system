@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -8,13 +9,15 @@ import {
   Button,
   MenuItem,
   Grid2 as Grid,
+  CircularProgress,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import type { Building } from '@/types';
 
 const buildingSchema = z.object({
   name: z.string().min(1, 'Building name is required'),
@@ -34,12 +37,13 @@ type BuildingFormData = z.infer<typeof buildingSchema>;
 const statuses = ['planning', 'construction', 'ready', 'populated', 'archived'];
 
 export default function BuildingFormPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+  const { projectId, buildingId } = useParams<{ projectId: string; buildingId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
+  const isEditMode = Boolean(buildingId);
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<BuildingFormData>({
+  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<BuildingFormData>({
     resolver: zodResolver(buildingSchema),
     defaultValues: {
       name: '',
@@ -53,23 +57,62 @@ export default function BuildingFormPage() {
     },
   });
 
+  const { data: buildingData, isLoading: buildingLoading } = useQuery({
+    queryKey: ['building-form', buildingId],
+    queryFn: async () => {
+      const response = await api.get(`/buildings/${buildingId}`);
+      return response.data.data as Building;
+    },
+    enabled: isEditMode && !!buildingId,
+  });
+
+  useEffect(() => {
+    if (!buildingData) {
+      return;
+    }
+
+    reset({
+      name: buildingData.name ?? '',
+      number: buildingData.number ?? '',
+      city: buildingData.city ?? '',
+      address: buildingData.address ?? '',
+      total_floors: buildingData.total_floors ?? undefined,
+      total_apartments: buildingData.total_apartments ?? undefined,
+      status: buildingData.status ?? 'planning',
+      construction_start: buildingData.construction_start ?? '',
+      completion_date: buildingData.completion_date ?? '',
+      description: buildingData.description ?? '',
+    });
+  }, [buildingData, reset]);
+
   const mutation = useMutation({
-    mutationFn: (data: BuildingFormData) => api.post(`/projects/${projectId}/buildings`, data),
+    mutationFn: (data: BuildingFormData) => (
+      isEditMode && buildingId
+        ? api.put(`/buildings/${buildingId}`, data)
+        : api.post(`/projects/${projectId}/buildings`, data)
+    ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      addToast('Building created', 'success');
+      if (buildingId) {
+        queryClient.invalidateQueries({ queryKey: ['building', buildingId] });
+      }
+      addToast(isEditMode ? 'Building updated' : 'Building created', 'success');
       navigate(`/objects/${projectId}/buildings`);
     },
     onError: (error: any) => {
-      addToast(error?.response?.data?.message || 'Failed to create building', 'error');
+      addToast(error?.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} building`, 'error');
     },
   });
+
+  if (buildingLoading) {
+    return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>;
+  }
 
   return (
     <Box>
       <Typography variant="h5" fontWeight={500} mb={3}>
-        New Building
+        {isEditMode ? 'Edit Building' : 'New Building'}
       </Typography>
       <Card>
         <CardContent>
@@ -131,7 +174,7 @@ export default function BuildingFormPage() {
 
             <Box display="flex" gap={2} mt={3}>
               <Button variant="contained" type="submit" disabled={isSubmitting || mutation.isPending}>
-                {mutation.isPending ? 'Creating…' : 'Create Building'}
+                {mutation.isPending ? (isEditMode ? 'Saving…' : 'Creating…') : (isEditMode ? 'Save Changes' : 'Create Building')}
               </Button>
               <Button variant="outlined" onClick={() => navigate(`/objects/${projectId}/buildings`)}>
                 Cancel

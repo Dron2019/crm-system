@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import GridViewIcon from '@mui/icons-material/GridView';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import ApartmentImportExportDialog from '@/components/ApartmentImportExportDialog';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -98,6 +99,13 @@ export default function ProjectBuildingsPage() {
               triggerLabel="Імпорт / Експорт квартир"
             />
             <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/objects/${projectId}/edit`)}
+            >
+              Редагувати проект
+            </Button>
+            <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => navigate(`/objects/${projectId}/buildings/new`)}
@@ -173,6 +181,13 @@ export default function ProjectBuildingsPage() {
                 </CardContent>
 
                 <CardActions>
+                  <Button
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => navigate(`/objects/${projectId}/buildings/${building.id}/edit`)}
+                  >
+                    Редагувати
+                  </Button>
                   <Button
                     size="small"
                     fullWidth

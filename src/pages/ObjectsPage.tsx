@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import GridViewIcon from '@mui/icons-material/GridView';
+import EditIcon from '@mui/icons-material/Edit';
 import ApartmentImportExportDialog from '@/components/ApartmentImportExportDialog';
 import api from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -119,8 +120,24 @@ export default function ProjectsPage() {
                   </Box>
                 </CardContent>
                 <CardActions>
-                  <Button size="small" onClick={() => navigate(`/objects/${project.id}/buildings`)}>
+                  <Button
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/objects/${project.id}/buildings`);
+                    }}
+                  >
                     Переглянути
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/objects/${project.id}/edit`);
+                    }}
+                  >
+                    Редагувати
                   </Button>
                   <Button
                     size="small"
