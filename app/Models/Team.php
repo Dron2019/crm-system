@@ -56,6 +56,26 @@ class Team extends Model
         return $this->hasMany(Deal::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function buildings(): HasMany
+    {
+        return $this->hasMany(Building::class);
+    }
+
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
+
+    public function apartments(): HasMany
+    {
+        return $this->hasMany(Apartment::class);
+    }
+
     public function pipelines(): HasMany
     {
         return $this->hasMany(Pipeline::class);
