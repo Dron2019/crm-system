@@ -107,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('deals/{deal}/notes', [DealActionController::class, 'notes']);
 
         // Apartments import/export
+        Route::post('apartments/import-preview', [ApartmentImportExportController::class, 'preview']);
+        Route::post('apartments/import-commit', [ApartmentImportExportController::class, 'commit']);
         Route::post('apartments/import', [ApartmentImportExportController::class, 'import']);
         Route::get('apartments/import-template', [ApartmentImportExportController::class, 'template']);
         Route::post('apartments/export', [ApartmentImportExportController::class, 'export']);
