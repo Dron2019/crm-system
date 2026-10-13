@@ -9,7 +9,6 @@ RUN apk add --no-cache \
     libzip-dev \
     zip \
     unzip \
-    postgresql-dev \
     icu-dev \
     linux-headers \
     $PHPIZE_DEPS
@@ -17,8 +16,7 @@ RUN apk add --no-cache \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo \
-        pdo_pgsql \
-        pgsql \
+        pdo_mysql \
         gd \
         zip \
         intl \

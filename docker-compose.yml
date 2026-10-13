@@ -6,13 +6,20 @@ services:
     container_name: crm-app
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      # .env targets services on the host (127.0.0.1); inside the network use service names
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      REDIS_HOST: redis
+      MAIL_HOST: mailpit
     volumes:
       - ./:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - crm
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -31,23 +38,27 @@ services:
     depends_on:
       - app
 
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: crm-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: crm-mysql
     restart: unless-stopped
+    # Migrations create triggers; without this a non-SUPER user can't while binlog is on
+    command: --log-bin-trust-function-creators=1
     environment:
-      POSTGRES_DB: crm
-      POSTGRES_USER: crm
-      POSTGRES_PASSWORD: secret
+      MYSQL_DATABASE: crm
+      MYSQL_USER: crm
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crm"]
+      # TCP ping: the temporary init server listens on the socket only, so this waits for the real one
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
     networks:
       - crm
 
@@ -83,6 +94,9 @@ services:
 
   minio:
     image: minio/minio:latest
+    # Opt-in (`docker compose --profile s3 up`): the app uses local disks for now, and
+    # minio/minio is no longer pullable from Docker Hub — swap in a working S3 image first
+    profiles: ["s3"]
     container_name: crm-minio
     restart: unless-stopped
     environment:
@@ -108,7 +122,7 @@ services:
       - crm
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
   meilisearch_data:
   minio_data:
